@@ -4,10 +4,11 @@
 
 // Model fallback chain: on free-tier rate limits (429) we silently degrade to
 // the next model so the demo never dies mid-conversation.
+// flash-lite first: its free tier allows ~3x more requests/min than flash.
 const MODELS = [
   process.env.GEMINI_MODEL,
-  "gemini-2.5-flash",
   "gemini-2.5-flash-lite",
+  "gemini-2.5-flash",
   "gemini-2.0-flash"
 ].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i);
 
@@ -56,8 +57,10 @@ const SYSTEM = (s) => `أنت «ثَروة»، مساعد بنكي ذكي داخ
 - المستفيدون المسجّلون: ${s.beneficiaries.map((b) => `${b.name} (${b.bank})`).join(" ، ") || "لا يوجد"}
 - خطة الاستثمار الحالية: ${s.invest.monthly} ر.س شهرياً — مستوى المخاطرة: ${s.invest.risk}
 
+قاعدة أساسية: الكلام وحده لا ينفّذ شيئاً — أي إجراء (بطاقة تحويل، إضافة مستفيد، خطة استثمار، فتح شاشة) يتم فقط عبر استدعاء الأداة فعلياً. لا تقل أبداً إن بطاقة أو شاشة ظهرت للعميل إذا لم تستدعِ الأداة في نفس هذا الرد.
+
 أدواتك وكيف تستخدمها:
-1) propose_transfer(amount, recipient): استدعها فور معرفة المبلغ واسم المستفيد — ستظهر للعميل بطاقة تأكيد تفاعلية فيها المستفيد والبنك والآيبان والمبلغ وزرّا تأكيد/إلغاء. بعد استدعائها ردّ بجملة قصيرة مثل «جهّزت لك التحويل — راجع البطاقة وأكّد». إذا نقص المبلغ أو المستفيد فاسأل أولاً. لا تسأل تأكيداً نصياً — البطاقة تتكفّل بذلك. إذا كان المستفيد غير مسجّل، اقترح إضافته كمستفيد جديد.
+1) propose_transfer(amount, recipient): استدعها فور معرفة المبلغ واسم المستفيد — ستظهر للعميل بطاقة تأكيد تفاعلية فيها المستفيد والبنك والآيبان والمبلغ وزرّا تأكيد/إلغاء. إذا نقص المبلغ أو المستفيد فاسأل أولاً. لا تسأل تأكيداً نصياً — البطاقة تتكفّل بذلك. إذا كان المستفيد غير مسجّل، اقترح إضافته كمستفيد جديد.
 2) execute_transfer(amount, recipient): التنفيذ الفعلي — لا تستدعها إلا إذا كتب العميل تأكيداً صريحاً بعد ظهور البطاقة.
 3) add_beneficiary(name, iban, bank): لإضافة مستفيد جديد. يكفي الاسم — اسأل عن الآيبان والبنك مرة واحدة فقط (اختياري)، وإذا ما توفّرا استدعِ الأداة بالاسم فقط وسنولّد بيانات تجريبية.
 4) set_investment_plan(monthly, risk): عند طلب خطة استثمار أو تغيير المبلغ/المخاطرة. المستويات: متحفظ (~5.1% نمواً)، متوسط (~8.4%)، جريء (~12.3%). ستُفتح شاشة الاستثمار تلقائياً بالتوزيع المناسب.
@@ -257,21 +260,25 @@ export default async function handler(req, res) {
       generationConfig: { maxOutputTokens: 800, temperature: 0.4 }
     });
     let lastErr = null;
-    for (const model of MODELS) {
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": KEY },
-        body: payload
-      });
-      const data = await r.json();
-      if (data.error) {
-        lastErr = data.error;
-        const code = Number(data.error.code) || 0;
-        // rate limit / overload / model missing → try the next free model
-        if (code === 429 || code === 503 || code === 404) continue;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      for (const model of MODELS) {
+        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-goog-api-key": KEY },
+          body: payload
+        });
+        const data = await r.json();
+        if (data.error) {
+          lastErr = data.error;
+          const code = Number(data.error.code) || 0;
+          // rate limit / overload / model missing → try the next free model
+          if (code === 429 || code === 503 || code === 404) continue;
+          return data;
+        }
         return data;
       }
-      return data;
+      // whole chain rate-limited → brief pause, then one more sweep
+      if (attempt === 0) await new Promise((r) => setTimeout(r, 3000));
     }
     return { error: lastErr || { message: "unavailable" } };
   }
