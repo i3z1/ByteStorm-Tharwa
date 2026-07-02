@@ -2,7 +2,14 @@
 // FREE tier: create a key at https://aistudio.google.com/apikey (no credit card).
 // The key is read from process.env.GEMINI_API_KEY (server-side secret; never exposed to the browser).
 
-const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+// Model fallback chain: on free-tier rate limits (429) we silently degrade to
+// the next model so the demo never dies mid-conversation.
+const MODELS = [
+  process.env.GEMINI_MODEL,
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-lite",
+  "gemini-2.0-flash"
+].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i);
 
 // ---- best-effort in-memory rate limit (per serverless instance) ----
 const HITS = new Map();
@@ -239,29 +246,45 @@ export default async function handler(req, res) {
     return;
   }
 
-  const URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
   let reply = "";
 
   async function callGemini() {
-    const r = await fetch(URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": KEY },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: SYSTEM(s) }] },
-        contents,
-        tools: TOOLS,
-        tool_config: { function_calling_config: { mode: "AUTO" } },
-        generationConfig: { maxOutputTokens: 800, temperature: 0.4 }
-      })
+    const payload = JSON.stringify({
+      system_instruction: { parts: [{ text: SYSTEM(s) }] },
+      contents,
+      tools: TOOLS,
+      tool_config: { function_calling_config: { mode: "AUTO" } },
+      generationConfig: { maxOutputTokens: 800, temperature: 0.4 }
     });
-    return r.json();
+    let lastErr = null;
+    for (const model of MODELS) {
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": KEY },
+        body: payload
+      });
+      const data = await r.json();
+      if (data.error) {
+        lastErr = data.error;
+        const code = Number(data.error.code) || 0;
+        // rate limit / overload / model missing → try the next free model
+        if (code === 429 || code === 503 || code === 404) continue;
+        return data;
+      }
+      return data;
+    }
+    return { error: lastErr || { message: "unavailable" } };
   }
 
   try {
     for (let i = 0; i < 5; i++) {
       const data = await callGemini();
       if (data.error) {
-        res.status(200).json({ error: "تعذّر الاتصال بالمساعد: " + (data.error.message || "خطأ") });
+        const code = Number(data.error.code) || 0;
+        const msg = (code === 429 || code === 503)
+          ? "المساعد وصل للحد المجاني مؤقتاً — انتظر دقيقة وحاول مرة ثانية."
+          : "تعذّر الاتصال بالمساعد: " + (data.error.message || "خطأ");
+        res.status(200).json({ error: msg });
         return;
       }
       const cand = data.candidates && data.candidates[0];
