@@ -38,11 +38,9 @@ function findBen(list, name) {
   const first = n.split(/\s+/)[0];
   return list.find((b) => normAr(b.name).split(/\s+/)[0] === first) || null;
 }
-function mockIban() {
-  let d = "";
-  for (let i = 0; i < 20; i++) d += Math.floor(Math.random() * 10);
-  return ("SA" + d).replace(/(.{4})/g, "$1 ").trim();
-}
+function normIban(v) { return String(v || "").replace(/\s+/g, "").toUpperCase(); }
+function validIban(v) { return /^SA\d{20,24}$/.test(normIban(v)); }
+function fmtIban(v) { return normIban(v).replace(/(.{4})/g, "$1 ").trim(); }
 
 const RISKS = { "متحفظ": 5.1, "متوسط": 8.4, "جريء": 12.3 };
 
@@ -61,7 +59,7 @@ const SYSTEM = (s) => `أنت «ثَروة»، مساعد بنكي ذكي داخ
 أدواتك وكيف تستخدمها:
 1) propose_transfer(amount, recipient): استدعها فور معرفة المبلغ واسم المستفيد — ستظهر للعميل بطاقة تأكيد تفاعلية فيها المستفيد والبنك والآيبان والمبلغ وزرّا تأكيد/إلغاء. إذا طابق الاسم المذكور مستفيداً واحداً فقط (ولو بالاسم الأول) فلا تسأل — اعتبره المقصود واستدعِ الأداة فوراً. اسأل فقط إذا نقص المبلغ أو كان الاسم يطابق أكثر من مستفيد. لا تسأل تأكيداً نصياً — البطاقة تتكفّل بذلك. إذا كان المستفيد غير مسجّل، اقترح إضافته كمستفيد جديد.
 2) execute_transfer(amount, recipient): التنفيذ الفعلي — لا تستدعها إلا إذا كتب العميل تأكيداً صريحاً بعد ظهور البطاقة.
-3) add_beneficiary(name, iban, bank): لإضافة مستفيد جديد. يكفي الاسم — اسأل عن الآيبان والبنك مرة واحدة فقط (اختياري)، وإذا ما توفّرا استدعِ الأداة بالاسم فقط وسنولّد بيانات تجريبية.
+3) add_beneficiary(name, iban, bank): لإضافة مستفيد جديد لازم تجمع البيانات كاملة — الاسم الكامل + رقم الآيبان (يبدأ بحرفَي SA ثم 22 رقماً) + اسم البنك. اسأل العميل عن كل بيان ناقص واحداً واحداً: اطلب الآيبان أولاً، ثم اسم البنك. تحقّق أن الآيبان بالصيغة الصحيحة، وإذا كان ناقصاً أو خاطئاً اطلبه من جديد بلطف. لا تخترع آيباناً أو بنكاً أبداً، ولا تستدعِ الأداة إلا بعد أن يعطيك العميل الآيبان واسم البنك فعلياً. بعد نجاح الإضافة تظهر للعميل بطاقة المستفيد بكل تفاصيله. (ملاحظة: المستفيدون المسجّلون مسبقاً معروفة بياناتهم — لا تسأل عنها عند التحويل لهم.)
 4) set_investment_plan(monthly, risk): عند طلب خطة استثمار أو تغيير المبلغ/المخاطرة. المستويات: متحفظ (~5.1% نمواً)، متوسط (~8.4%)، جريء (~12.3%). ستُفتح شاشة الاستثمار تلقائياً بالتوزيع المناسب.
 5) open_screen(screen): لفتح شاشة home أو spend أو invest عند الطلب.
 
@@ -161,15 +159,19 @@ function doExecute(args, s, actions) {
 
 function doAddBen(args, s, actions) {
   const name = String(args.name || "").trim().slice(0, 60);
-  if (!name) return { ok: false, note: "الاسم مطلوب." };
-  if (findBen(s.beneficiaries, name)) return { ok: false, note: `«${name}» موجود مسبقاً في المستفيدين.` };
+  if (!name) return { ok: false, note: "ناقص: الاسم الكامل للمستفيد. اطلبه من العميل." };
+  if (findBen(s.beneficiaries, name)) return { ok: false, note: `«${name}» مسجّل مسبقاً في المستفيدين — تقدر تحوّل له مباشرة.` };
+  const bank = String(args.bank || "").trim().slice(0, 40);
+  const ibanRaw = String(args.iban || "").trim();
+  if (!ibanRaw) return { ok: false, note: `ناقص: رقم الآيبان لـ${name}. اطلب الآيبان من العميل (يبدأ بـ SA). لا تضف المستفيد بدونه.` };
+  if (!validIban(ibanRaw)) return { ok: false, note: "الآيبان غير صحيح — لازم يبدأ بحرفَي SA ويتبعه 22 رقماً. اطلب من العميل الآيبان الصحيح." };
+  if (!bank) return { ok: false, note: `ناقص: اسم بنك المستفيد ${name}. اطلب اسم البنك من العميل. لا تضف المستفيد بدونه.` };
   if (s.beneficiaries.length >= 30) return { ok: false, note: "وصلت للحد الأقصى من المستفيدين." };
-  const iban = String(args.iban || "").trim().slice(0, 40) || mockIban();
-  const bank = String(args.bank || "").trim().slice(0, 40) || "مصرف الإنماء";
+  const iban = fmtIban(ibanRaw);
   const b = { name, bank, iban };
   s.beneficiaries.push(b);
   actions.push({ type: "beneficiary", name, bank, iban });
-  return { ok: true, note: `تمت إضافة ${name} (${bank}) إلى المستفيدين بنجاح. الآن يمكن التحويل له مباشرة.` };
+  return { ok: true, note: `تمت إضافة ${name} — ${bank} — آيبان ${iban} — بنجاح. الآن تقدر تحوّل له مباشرة.` };
 }
 
 function doInvest(args, s, actions) {
