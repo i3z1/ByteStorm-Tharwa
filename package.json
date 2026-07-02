@@ -3,8 +3,5 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Tharwa — AI banking assistant (ByteStorm, Amد 2026 hackathon)",
-  "dependencies": {
-    "@anthropic-ai/sdk": "^0.109.1"
-  }
+  "description": "Tharwa — AI banking assistant (ByteStorm, Amد 2026 hackathon)"
 }

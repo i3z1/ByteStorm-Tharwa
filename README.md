@@ -19,17 +19,17 @@
 
 ## 🧠 كيف يعمل (البنية)
 ```
-واجهة التطبيق (HTML/JS)  ──►  /api/chat (Vercel Serverless)  ──►  Claude (LLM) + Tools
+واجهة التطبيق (HTML/JS)  ──►  /api/chat (Vercel Serverless)  ──►  Gemini (LLM) + Tools
         ▲                                                              │
         └──────────  رد + تحديث الحالة + تنفيذ الأداة  ◄───────────────┘
 ```
-- يفهم نموذج **Claude** أمر العميل بالعربية، ويستدعي الأداة المناسبة:
+- يفهم نموذج **Google Gemini** أمر العميل بالعربية، ويستدعي الأداة المناسبة:
   - `execute_transfer(amount, recipient)` — ينفّذ التحويل بعد التأكيد.
   - `open_screen(screen)` — يفتح شاشة التحليل/الاستثمار.
-- مفتاح الـ API محفوظ **كسر على الخادم** (`ANTHROPIC_API_KEY`) ولا يظهر إطلاقاً في المتصفح.
+- مفتاح الـ API محفوظ **كسر على الخادم** (`GEMINI_API_KEY`) ولا يظهر إطلاقاً في المتصفح.
 
 ## 🛠️ التقنيات
-`Claude (Function-Calling)` · `Vercel Serverless Functions` · `JavaScript / HTML` · `بيانات معاملات اصطناعية` · `معالجة اللغة الطبيعية`
+`Google Gemini (Function-Calling)` · `Vercel Serverless Functions` · `JavaScript / HTML` · `بيانات معاملات اصطناعية` · `معالجة اللغة الطبيعية`
 
 ## 👥 الفريق — ByteStorm
 | العضو | الدور |
@@ -41,9 +41,9 @@
 
 ## ⚙️ التشغيل محلياً
 ```bash
-npm install
-# ضع مفتاح Anthropic في متغيّر بيئة (لا تضعه في الكود):
-#   ANTHROPIC_API_KEY=sk-ant-...
+# أنشئ مفتاح Gemini المجاني: https://aistudio.google.com/apikey
+# ثم ضعه في متغيّر بيئة (لا تضعه في الكود):
+#   GEMINI_API_KEY=...
 npm i -g vercel && vercel dev
 ```
 
@@ -51,4 +51,4 @@ npm i -g vercel && vercel dev
 هذا **نموذج أوّلي (~30% من المشروع)**: البيانات والمعاملات **اصطناعية/محاكاة** ولا يتصل بأي بنك حقيقي أو أموال حقيقية — وهو ما يتوافق مع مرحلة النموذج التجريبي.
 
 ---
-*Built for the Amد 2026 hackathon by ByteStorm. A working prototype — simulated banking data, real generative-AI command understanding via Claude function-calling.*
+*Built for the Amد 2026 hackathon by ByteStorm. A working prototype — simulated banking data, real generative-AI command understanding via Gemini function-calling.*
