@@ -9,19 +9,27 @@
     balance: 24580.00,
     account: "الجاري · •••• 9000",
     expenses: { "مطاعم": 2247, "تسوّق": 1412, "فواتير": 1156, "تحويلات": 963, "أخرى": 642 },
-    contacts: ["أحمد العتيبي", "سارة القحطاني", "محمد الزهراني", "نورة العنزي"]
+    beneficiaries: [
+      { name: "أحمد العتيبي", bank: "مصرف الإنماء", iban: "SA44 0500 0068 2016 1234 9101" },
+      { name: "سارة القحطاني", bank: "مصرف الراجحي", iban: "SA03 8000 0000 6080 1016 7519" },
+      { name: "محمد الزهراني", bank: "البنك الأهلي SNB", iban: "SA71 1000 0011 2233 4455 6677" }
+    ],
+    invest: { monthly: 500, risk: "متوسط" }
   };
   var history = []; // {role:'user'|'assistant', text}
 
   var ICON_TRANSFER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2.5 21 6.5l-4 4"/><path d="M3 11V9.5a2 2 0 0 1 2-2h16"/><path d="M7 21.5 3 17.5l4-4"/><path d="M21 13v1.5a2 2 0 0 1-2 2H3"/></svg>';
   var ICON_OK = '<svg viewBox="0 0 24 24" fill="none" stroke="#37C98C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m8 12 2.5 2.5L16 9"/></svg>';
   var ICON_ERR = '<svg viewBox="0 0 24 24" fill="none" stroke="#F0796B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>';
+  var ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  var ICON_USERPLUS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></svg>';
 
   // ---------------- HELPERS ----------------
   function fmt(n) { return Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function fmt0(n) { return Math.round(Number(n)).toLocaleString("en-US"); }
   function esc(s) { return String(s).replace(/[&<>]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]; }); }
   function rich(s) { return esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\n/g, "<br>"); }
+  function deTashkeel(t) { return String(t || "").replace(/[ً-ْـ]/g, "").trim(); }
 
   // ---------------- NAVIGATION ----------------
   function show(id) {
@@ -49,6 +57,37 @@
     while (ul.children.length > 4) ul.removeChild(ul.lastChild);
   }
 
+  // ---------------- INVEST SCREEN (interactive) ----------------
+  var RISKS = {
+    "متحفظ": { pos: "88%", growth: 5.1, alloc: [30, 20, 50], word: "المتحفظ" },
+    "متوسط": { pos: "50%", growth: 8.4, alloc: [60, 20, 20], word: "المتوسط" },
+    "جريء": { pos: "12%", growth: 12.3, alloc: [80, 15, 5], word: "الجريء" }
+  };
+  function applyInvest(monthly, risk) {
+    risk = deTashkeel(risk);
+    if (!RISKS[risk]) risk = "متوسط";
+    var r = RISKS[risk];
+    monthly = Math.max(250, Math.min(20000, Math.round((Number(monthly) || state.invest.monthly || 500) / 50) * 50));
+    state.invest = { monthly: monthly, risk: risk };
+
+    var m = q("#inv-monthly"); if (m) m.textContent = fmt0(monthly);
+    var k = q("#inv-knob"); if (k) k.style.left = r.pos;
+    qa("#s-invest .rlabels span").forEach(function (sp) {
+      sp.classList.toggle("on", deTashkeel(sp.textContent) === risk);
+    });
+    var g = q("#inv-growth"); if (g) g.textContent = "+" + r.growth + "%";
+    var fills = qa("#s-invest .arow .fill"), pcs = qa("#s-invest .arow .pc");
+    r.alloc.forEach(function (p, i) {
+      if (fills[i]) fills[i].style.width = p + "%";
+      if (pcs[i]) pcs[i].textContent = p + "%";
+    });
+    var w = q("#inv-risk-word"); if (w) w.textContent = r.word;
+    var proj = Math.round((monthly * 24 * (1 + r.growth / 100)) / 100) * 100;
+    var pj = q("#inv-proj"); if (pj) pj.textContent = "~" + fmt0(proj) + " ر.س";
+    var cta = q("#s-invest .cta .b");
+    if (cta && cta.dataset.on) cta.innerHTML = ICON_CHECK + "الخطة مفعّلة — " + fmt0(monthly) + " ر.س شهرياً";
+  }
+
   // ---------------- CHAT UI ----------------
   var log;
   function scrollChat() { if (log) log.scrollTop = log.scrollHeight; }
@@ -71,30 +110,98 @@
     var t = document.createElement("div"); t.className = "typing";
     t.innerHTML = "<i></i><i></i><i></i>"; log.appendChild(t); scrollChat(); return t;
   }
+  function cardRow(k, vHtml) {
+    return '<div class="r"><span class="k">' + k + '</span>' + vHtml + '</div>';
+  }
+
+  // ---------------- TRANSFER CONFIRMATION CARD ----------------
+  function renderConfirmCard(a) {
+    var card = document.createElement("div");
+    card.className = "tcard";
+    var init = esc((a.recipient || "م").trim().charAt(0));
+    card.innerHTML =
+      '<div class="h"><span class="ti">' + ICON_TRANSFER + '</span>تأكيد التحويل<span class="badge">تحويل فوري</span></div>'
+      + cardRow("المستفيد", '<span class="who"><span class="pa">' + init + '</span><span class="v">' + esc(a.recipient) + '</span></span>')
+      + (a.bank ? cardRow("البنك", '<span class="v">' + esc(a.bank) + '</span>') : "")
+      + (a.iban ? cardRow("الآيبان", '<span class="v" style="direction:ltr;font-size:12.5px;letter-spacing:.3px">' + esc(a.iban) + '</span>') : "")
+      + cardRow("من حساب", '<span class="v">' + esc(a.account || state.account) + '</span>')
+      + '<div class="r big"><span class="k">المبلغ</span><span class="v">' + fmt(a.amount) + '<span class="c">ر.س</span></span></div>'
+      + '<div class="confirm"><button class="btn ok">' + ICON_CHECK + 'تأكيد التحويل</button><button class="btn no">إلغاء</button></div>';
+    log.appendChild(card); scrollChat();
+
+    function settle(label, color) {
+      var c = q(".confirm", card); if (c) c.remove();
+      var d = document.createElement("div"); d.className = "r";
+      d.innerHTML = '<span class="k">الحالة</span><span class="v" style="color:' + color + '">' + label + '</span>';
+      card.appendChild(d);
+    }
+    q(".btn.ok", card).onclick = function () {
+      if (busy) return; busy = true;
+      var t = typingOn();
+      fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: { amount: a.amount, recipient: a.recipient }, state: state, history: history })
+      }).then(function (r) { return r.json(); }).then(function (data) {
+        if (t.parentNode) t.remove();
+        if (data.error) { errorBubble(data.error); busy = false; return; }
+        if (data.state) state = data.state;
+        var ok = (data.actions || []).some(function (x) { return x.type === "transfer" && x.ok; });
+        settle(ok ? "تم التنفيذ" : "فشل", ok ? "var(--green)" : "#F0796B");
+        if (data.reply) history.push({ role: "assistant", text: data.reply });
+        applyActions(data.actions);
+        busy = false;
+      }).catch(function () {
+        if (t.parentNode) t.remove();
+        errorBubble("تعذّر الاتصال. حاول مرة ثانية.");
+        busy = false;
+      });
+    };
+    q(".btn.no", card).onclick = function () {
+      settle("أُلغي", "var(--muted)");
+      history.push({ role: "assistant", text: "تم إلغاء التحويل بناءً على طلب العميل." });
+      botMsg("تم إلغاء العملية. تحتاج شيئاً آخر؟");
+    };
+  }
+
+  // ---------------- BENEFICIARY CARD ----------------
+  function renderBeneficiaryCard(a) {
+    var card = document.createElement("div");
+    card.className = "tcard";
+    var init = esc((a.name || "م").trim().charAt(0));
+    card.innerHTML =
+      '<div class="h"><span class="ti">' + ICON_USERPLUS + '</span>مستفيد جديد<span class="badge">تمت الإضافة</span></div>'
+      + cardRow("الاسم", '<span class="who"><span class="pa">' + init + '</span><span class="v">' + esc(a.name) + '</span></span>')
+      + cardRow("البنك", '<span class="v">' + esc(a.bank || "") + '</span>')
+      + cardRow("الآيبان", '<span class="v" style="direction:ltr;font-size:12.5px;letter-spacing:.3px">' + esc(a.iban || "") + '</span>');
+    log.appendChild(card); scrollChat();
+  }
 
   // ---------------- APPLY ACTIONS FROM SERVER ----------------
   function applyActions(actions) {
     if (!actions) return;
     actions.forEach(function (a) {
-      if (a.type === "transfer" && a.ok) {
+      if (a.type === "confirm") {
+        renderConfirmCard(a);
+      } else if (a.type === "transfer" && a.ok) {
         successBubble("تم تحويل " + fmt(a.amount) + " ر.س إلى " + a.recipient + " بنجاح.");
         renderHome();
         addTxn("تحويل إلى " + a.recipient, "تحويل · الآن", a.amount, false);
       } else if (a.type === "transfer" && !a.ok) {
         errorBubble(a.message || "تعذّر تنفيذ التحويل.");
+      } else if (a.type === "beneficiary") {
+        renderBeneficiaryCard(a);
+      } else if (a.type === "invest_plan") {
+        applyInvest(a.monthly, a.risk);
+        setTimeout(function () { show("s-invest"); }, 1100);
       } else if (a.type === "open" && a.screen) {
         var map = { home: "s-home", spend: "s-spend", invest: "s-invest", chat: "s-chat" };
         var target = map[a.screen];
-        if (target && target !== "s-chat") {
-          var btn = document.createElement("button");
-          btn.className = "linkbtn"; btn.textContent = "فتح الشاشة";
-          btn.onclick = function () { show(target); };
-          log.appendChild(btn); scrollChat();
-          setTimeout(function () { show(target); }, 900);
-        }
+        if (target && target !== "s-chat") setTimeout(function () { show(target); }, 900);
       }
     });
   }
+  window.__tharwaApply = applyActions;
 
   // ---------------- SEND TO AI ----------------
   var busy = false;
@@ -132,7 +239,14 @@
   }
 
   // ---------------- SUGGESTION CHIPS ----------------
-  var CHIPS = ["حوّل 500 لأحمد", "كم صرفت هذا الشهر؟", "كم صرفت على المطاعم؟", "اقترح لي خطة استثمار", "كم رصيدي؟"];
+  var CHIPS = [
+    "حوّل 500 لأحمد",
+    "أضف مستفيد جديد",
+    "من هم المستفيدون عندي؟",
+    "كم صرفت على المطاعم؟",
+    "أبي خطة استثمار جريئة بـ 1000 شهرياً",
+    "كم رصيدي؟"
+  ];
 
   // ---------------- INIT ----------------
   function init() {
@@ -140,7 +254,7 @@
     renderHome();
 
     // greeting
-    botMsg("أهلاً بك، أنا <b>ثَروة</b> — مساعدك البنكي الذكي. أقدر أنفّذ تحويلاتك، أحلّل مصروفاتك، وأقترح خطط استثمار. اكتب طلبك بلغتك الطبيعية، أو اختر أحد الاقتراحات بالأسفل.");
+    botMsg("أهلاً بك، أنا <b>ثَروة</b> — مساعدك البنكي الذكي. أنفّذ تحويلاتك، أضيف مستفيدين جدد، أحلّل مصروفاتك، وأجهّز لك خطط استثمار. اكتب طلبك بلغتك الطبيعية، أو جرّب أحد الاقتراحات بالأسفل.");
 
     var chips = q("#chips");
     if (chips) CHIPS.forEach(function (cText) {
@@ -173,9 +287,22 @@
     var sb = q("#s-spend .th .back"); if (sb) sb.onclick = function () { show("s-home"); };
     var ib = q("#s-invest .th .back"); if (ib) ib.onclick = function () { show("s-home"); };
 
-    // invest CTA
+    // invest interactivity
+    var minus = q("#inv-minus"), plus = q("#inv-plus");
+    if (minus) minus.onclick = function () { applyInvest(state.invest.monthly - 250, state.invest.risk); };
+    if (plus) plus.onclick = function () { applyInvest(state.invest.monthly + 250, state.invest.risk); };
+    qa("#s-invest .rlabels span").forEach(function (sp) {
+      sp.onclick = function () { applyInvest(state.invest.monthly, sp.textContent); };
+    });
     var cta = q("#s-invest .cta .b");
-    if (cta) cta.onclick = function () { cta.innerHTML = "تم تفعيل الخطة — سنستثمر 500 ر.س شهرياً"; };
+    if (cta) cta.onclick = function () {
+      cta.dataset.on = "1";
+      cta.style.background = "var(--green)";
+      cta.style.color = "#04231a";
+      cta.style.boxShadow = "0 12px 26px rgba(55,201,140,.35)";
+      cta.innerHTML = ICON_CHECK + "الخطة مفعّلة — " + fmt0(state.invest.monthly) + " ر.س شهرياً";
+    };
+    applyInvest(state.invest.monthly, state.invest.risk);
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
