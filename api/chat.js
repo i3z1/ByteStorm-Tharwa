@@ -2,13 +2,13 @@
 // FREE tier: create a key at https://aistudio.google.com/apikey (no credit card).
 // The key is read from process.env.GEMINI_API_KEY (server-side secret; never exposed to the browser).
 
-// Model fallback chain: on free-tier rate limits (429) we silently degrade to
-// the next model so the demo never dies mid-conversation.
-// flash-lite first: its free tier allows ~3x more requests/min than flash.
+// Model fallback chain: on rate limits/overload (429/503) we silently degrade
+// to the next model so the demo never dies mid-conversation.
+// Paid tier: flash first (smarter), lite as the safety net.
 const MODELS = [
   process.env.GEMINI_MODEL,
-  "gemini-2.5-flash-lite",
-  "gemini-2.5-flash"
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-lite"
 ].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i);
 
 // ---- best-effort in-memory rate limit (per serverless instance) ----
@@ -59,7 +59,7 @@ const SYSTEM = (s) => `أنت «ثَروة»، مساعد بنكي ذكي داخ
 قاعدة أساسية: الكلام وحده لا ينفّذ شيئاً — أي إجراء (بطاقة تحويل، إضافة مستفيد، خطة استثمار، فتح شاشة) يتم فقط عبر استدعاء الأداة فعلياً. لا تقل أبداً إن بطاقة أو شاشة ظهرت للعميل إذا لم تستدعِ الأداة في نفس هذا الرد.
 
 أدواتك وكيف تستخدمها:
-1) propose_transfer(amount, recipient): استدعها فور معرفة المبلغ واسم المستفيد — ستظهر للعميل بطاقة تأكيد تفاعلية فيها المستفيد والبنك والآيبان والمبلغ وزرّا تأكيد/إلغاء. إذا نقص المبلغ أو المستفيد فاسأل أولاً. لا تسأل تأكيداً نصياً — البطاقة تتكفّل بذلك. إذا كان المستفيد غير مسجّل، اقترح إضافته كمستفيد جديد.
+1) propose_transfer(amount, recipient): استدعها فور معرفة المبلغ واسم المستفيد — ستظهر للعميل بطاقة تأكيد تفاعلية فيها المستفيد والبنك والآيبان والمبلغ وزرّا تأكيد/إلغاء. إذا طابق الاسم المذكور مستفيداً واحداً فقط (ولو بالاسم الأول) فلا تسأل — اعتبره المقصود واستدعِ الأداة فوراً. اسأل فقط إذا نقص المبلغ أو كان الاسم يطابق أكثر من مستفيد. لا تسأل تأكيداً نصياً — البطاقة تتكفّل بذلك. إذا كان المستفيد غير مسجّل، اقترح إضافته كمستفيد جديد.
 2) execute_transfer(amount, recipient): التنفيذ الفعلي — لا تستدعها إلا إذا كتب العميل تأكيداً صريحاً بعد ظهور البطاقة.
 3) add_beneficiary(name, iban, bank): لإضافة مستفيد جديد. يكفي الاسم — اسأل عن الآيبان والبنك مرة واحدة فقط (اختياري)، وإذا ما توفّرا استدعِ الأداة بالاسم فقط وسنولّد بيانات تجريبية.
 4) set_investment_plan(monthly, risk): عند طلب خطة استثمار أو تغيير المبلغ/المخاطرة. المستويات: متحفظ (~5.1% نمواً)، متوسط (~8.4%)، جريء (~12.3%). ستُفتح شاشة الاستثمار تلقائياً بالتوزيع المناسب.
