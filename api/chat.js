@@ -8,8 +8,7 @@
 const MODELS = [
   process.env.GEMINI_MODEL,
   "gemini-2.5-flash-lite",
-  "gemini-2.5-flash",
-  "gemini-2.0-flash"
+  "gemini-2.5-flash"
 ].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i);
 
 // ---- best-effort in-memory rate limit (per serverless instance) ----
@@ -283,10 +282,26 @@ export default async function handler(req, res) {
     return { error: lastErr || { message: "unavailable" } };
   }
 
+  // If the LLM dies AFTER a tool already executed, answer with a canned line —
+  // the action (card/beneficiary/plan) already happened; never show an error then.
+  function cannedReply() {
+    const last = actions[actions.length - 1];
+    if (!last) return "";
+    if (last.type === "confirm") return "جهّزت لك بطاقة التأكيد — راجع التفاصيل واضغط «تأكيد التحويل».";
+    if (last.type === "beneficiary") return `تمت إضافة ${last.name} إلى مستفيديك — تقدر تحوّل له مباشرة.`;
+    if (last.type === "invest_plan") return `جهّزت لك الخطة: ${last.monthly} ر.س شهرياً بمستوى «${last.risk}» — افتح شاشة الاستثمار وشوف التفاصيل.`;
+    if (last.type === "transfer" && last.ok) return `تم تنفيذ التحويل بنجاح. رصيدك الحالي ${s.balance} ر.س.`;
+    if (last.type === "transfer") return "تعذّر تنفيذ التحويل: الرصيد غير كافٍ.";
+    if (last.type === "open") return "فتحت لك الشاشة.";
+    return "";
+  }
+
   try {
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 4; i++) {
       const data = await callGemini();
       if (data.error) {
+        const canned = cannedReply();
+        if (canned) { res.status(200).json({ reply: canned, state: s, actions }); return; }
         const code = Number(data.error.code) || 0;
         const msg = (code === 429 || code === 503)
           ? "المساعد وصل للحد المجاني مؤقتاً — انتظر دقيقة وحاول مرة ثانية."
