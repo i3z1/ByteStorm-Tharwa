@@ -113,14 +113,14 @@ export default async function handler(req, res) {
     return;
   }
 
-  const URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${KEY}`;
+  const URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
   const actions = [];
   let reply = "";
 
   async function callGemini() {
     const r = await fetch(URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-goog-api-key": KEY },
       body: JSON.stringify({
         system_instruction: { parts: [{ text: SYSTEM(s) }] },
         contents,
