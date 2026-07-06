@@ -216,11 +216,11 @@
     var chunks = t.match(/[^.!؟?؛]+[.!؟?؛]?/g) || [t];
     var out = "";
     for (var i = 0; i < chunks.length; i++) {
-      if (out && (out + chunks[i]).length > 130) break;
+      if (out && (out + chunks[i]).length > 80) break;
       out += chunks[i];
-      if (out.length >= 60) break;
+      if (out.length >= 40) break;
     }
-    return (out.trim() || t.slice(0, 130));
+    return (out.trim() || t.slice(0, 80));
   }
   function warmTts() {
     if (!ttsOn) return;
