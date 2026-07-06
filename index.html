@@ -195,6 +195,14 @@ footer a{color:var(--coral);font-weight:700;text-decoration:none}
 @keyframes micpulse{0%,100%{box-shadow:0 0 0 0 rgba(240,121,107,.55)}50%{box-shadow:0 0 0 13px rgba(240,121,107,0)}}
 #s-chat .warnrow{margin-top:12px;display:flex;gap:9px;align-items:flex-start;background:rgba(226,169,59,.13);border:1px solid rgba(226,169,59,.35);color:var(--gold);font-size:13px;font-weight:700;line-height:1.6;padding:11px 13px;border-radius:13px}
 #s-chat .warnrow svg{width:18px;height:18px;flex:none;margin-top:2px}
+/* ---------- motion: native-feel transitions ---------- */
+.page.active{animation:pagein .3s cubic-bezier(.22,.7,.3,1)}
+@keyframes pagein{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+#s-chat .msg,#s-chat .tcard,#s-chat .success,#s-chat .typing,#s-home .tx{animation:rise .24s ease-out}
+@keyframes rise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+#s-home .qa .ic,#s-home .fab,#s-chat .btn,.sgchip,#s-chat .send,#s-chat .mic,#s-chat .spk,#s-invest .cta .b,#s-invest .stp,#s-home .nv{transition:transform .12s ease}
+#s-home .qa:active .ic,#s-home .fab:active,#s-chat .btn:active,.sgchip:active,#s-chat .send:active,#s-chat .mic:active,#s-chat .spk:active,#s-invest .cta .b:active,#s-invest .stp:active,#s-home .nv:active{transform:scale(.94)}
+@media(prefers-reduced-motion:reduce){.page.active,#s-chat .msg,#s-chat .tcard,#s-chat .success,#s-chat .typing,#s-home .tx{animation:none}}
 html,body{overflow-x:hidden}
 /* ---------- mobile: full-bleed native-app layout (no mockup frame) ---------- */
 @media(max-width:520px){

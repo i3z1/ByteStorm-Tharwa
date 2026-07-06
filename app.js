@@ -122,7 +122,11 @@
 
   // ---------------- CHAT UI ----------------
   var log;
-  function scrollChat() { if (log) log.scrollTop = log.scrollHeight; }
+  function scrollChat() {
+    if (!log) return;
+    try { log.scrollTo({ top: log.scrollHeight, behavior: "smooth" }); }
+    catch (e) { log.scrollTop = log.scrollHeight; }
+  }
 
   // keyboard-aware layout: expose keyboard height as --kb so the input bar
   // and chat stay visible above the on-screen keyboard (iOS Safari mainly)
@@ -336,6 +340,7 @@
     if (mic) {
       if (SR) {
         var PH = cmd ? cmd.placeholder : "";
+        var vbase = ""; // text already in the field when the mic starts — dictation appends, never erases
         rec = new SR();
         rec.lang = "ar-SA";
         rec.interimResults = true;
@@ -347,7 +352,7 @@
             txt += e.results[i][0].transcript;
             if (e.results[i].isFinal) fin = true;
           }
-          if (cmd) cmd.value = txt;
+          if (cmd) cmd.value = vbase + txt;
           // done listening → leave the text in the field for the user to review and send
           if (fin) { try { rec.stop(); } catch (err) {} }
         };
@@ -366,7 +371,8 @@
           if (window.speechSynthesis) speechSynthesis.cancel();
           recognizing = true;
           mic.classList.add("rec");
-          if (cmd) { cmd.value = ""; cmd.placeholder = "أسمعك… تكلّم الآن"; }
+          vbase = (cmd && cmd.value.trim()) ? cmd.value.replace(/\s+$/, "") + " " : "";
+          if (cmd) cmd.placeholder = "أسمعك… تكلّم الآن";
           try { rec.start(); } catch (err) { recognizing = false; mic.classList.remove("rec"); }
         };
       } else {
