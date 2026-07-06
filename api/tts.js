@@ -28,6 +28,7 @@ function cachePut(k, v) {
 // if the key's project doesn't have the Cloud TTS API enabled.
 async function cloudTTS(text, key) {
   const voices = [process.env.CLOUD_TTS_VOICE, "ar-XA-Chirp3-HD-Charon", "ar-XA-Wavenet-B"].filter(Boolean);
+  let lastErr = null;
   for (const name of voices) {
     try {
       const r = await fetch("https://texttospeech.googleapis.com/v1/text:synthesize", {
@@ -40,12 +41,13 @@ async function cloudTTS(text, key) {
         })
       });
       const data = await r.json();
-      if (data.audioContent) return data.audioContent;
-      const code = Number(data.error && data.error.code) || 0;
-      if (code !== 400 && code !== 404) return null; // 403 = API blocked for this key → use Gemini
-    } catch (e) { return null; }
+      if (data.audioContent) return { audio: data.audioContent };
+      lastErr = data.error || { message: "unknown" };
+      const code = Number(lastErr.code) || 0;
+      if (code !== 400 && code !== 404) break; // 403 = API blocked for this key → use Gemini
+    } catch (e) { lastErr = { message: String(e && e.message) }; break; }
   }
-  return null;
+  return { err: lastErr };
 }
 
 export default async function handler(req, res) {
@@ -70,11 +72,15 @@ export default async function handler(req, res) {
   if (hit) { res.status(200).json(hit); return; }
 
   const cloudKey = process.env.GOOGLE_TTS_KEY || KEY;
-  const mp3 = await cloudTTS(text, cloudKey);
-  if (mp3) {
-    const out = { audio: mp3, mime: "audio/mpeg", src: "cloud" };
+  const cloud = await cloudTTS(text, cloudKey);
+  if (cloud.audio) {
+    const out = { audio: cloud.audio, mime: "audio/mpeg", src: "cloud" };
     cachePut(text, out);
     res.status(200).json(out);
+    return;
+  }
+  if (body.debug) {
+    res.status(200).json({ src: "cloud-failed", cloudError: cloud.err });
     return;
   }
 
