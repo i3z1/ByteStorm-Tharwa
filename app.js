@@ -29,6 +29,8 @@
   var ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
   var ICON_USERPLUS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></svg>';
   var ICON_SHIELD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-3.6 8-10V5.5L12 2 4 5.5V12c0 6.4 8 10 8 10Z"/><path d="M12 8v4"/><path d="M12 15.5h.01"/></svg>';
+  var ICON_SPK_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
+  var ICON_SPK_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="m16 9 6 6"/><path d="m22 9-6 6"/></svg>';
 
   // ---------------- HELPERS ----------------
   function fmt(n) { return Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
@@ -97,14 +99,16 @@
     if (cta && cta.dataset.on) cta.innerHTML = ICON_CHECK + "الخطة مفعّلة — " + fmt0(monthly) + " ر.س شهرياً";
   }
 
-  // ---------------- VOICE (Arabic speech-to-text + spoken replies) ----------------
+  // ---------------- VOICE (Arabic speech-to-text + optional spoken replies) ----------------
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  var voiceMode = false;   // last command came from the mic → speak the reply back
+  var TTS_KEY = "tharwa_tts";
+  var ttsOn = false;       // voice replies — user setting (speaker toggle in chat header)
+  try { ttsOn = localStorage.getItem(TTS_KEY) === "1"; } catch (e) {}
   var recognizing = false;
   var rec = null;
 
   function speak(text) {
-    if (!voiceMode || !window.speechSynthesis) return;
+    if (!ttsOn || recognizing || !window.speechSynthesis) return;
     try {
       var u = new SpeechSynthesisUtterance(String(text).replace(/\*\*/g, ""));
       u.lang = "ar-SA";
@@ -250,6 +254,7 @@
   function handle(text) {
     text = (text || "").trim();
     if (!text || busy) return;
+    if (recognizing && rec) { try { rec.stop(); } catch (e) {} }
     busy = true;
     userMsg(text);
     var c = q("#cmd"); if (c) c.value = "";
@@ -296,17 +301,35 @@
     renderHome();
 
     // greeting
-    botMsg("أهلاً بك، أنا <b>ثَروة</b> — مساعدك البنكي الذكي. أنفّذ تحويلاتك، أضيف مستفيدين جدد، أحلّل مصروفاتك، وأجهّز لك خطط استثمار. اكتب طلبك بلغتك الطبيعية، أو اضغط زر <b>المايك</b> وتكلّم — وأرد عليك صوتياً.");
+    botMsg("أهلاً بك، أنا <b>ثَروة</b> — مساعدك البنكي الذكي. أنفّذ تحويلاتك، أضيف مستفيدين جدد، أحلّل مصروفاتك، وأجهّز لك خطط استثمار. اكتب طلبك بلغتك الطبيعية، أو اضغط زر <b>المايك</b> وتكلّم — يتحوّل كلامك إلى نص تراجعه ثم ترسله. ولو تبي ردوداً صوتية، فعّل زر <b>السماعة</b> بالأعلى.");
 
     var chips = q("#chips");
     if (chips) CHIPS.forEach(function (cText) {
       var b = document.createElement("div"); b.className = "sgchip"; b.textContent = cText;
-      b.onclick = function () { voiceMode = false; handle(cText); };
+      b.onclick = function () { handle(cText); };
       chips.appendChild(b);
     });
 
-    var send = q("#send"); if (send) send.onclick = function () { voiceMode = false; handle(q("#cmd").value); };
-    var cmd = q("#cmd"); if (cmd) cmd.addEventListener("keydown", function (e) { if (e.key === "Enter") { voiceMode = false; handle(cmd.value); } });
+    var send = q("#send"); if (send) send.onclick = function () { handle(q("#cmd").value); };
+    var cmd = q("#cmd"); if (cmd) cmd.addEventListener("keydown", function (e) { if (e.key === "Enter") handle(cmd.value); });
+
+    // voice-reply setting: speaker toggle in the chat header (persisted)
+    var spk = q("#spk");
+    function renderSpk() {
+      if (!spk) return;
+      spk.classList.toggle("on", ttsOn);
+      spk.innerHTML = ttsOn ? ICON_SPK_ON : ICON_SPK_OFF;
+    }
+    if (spk) {
+      renderSpk();
+      spk.onclick = function () {
+        ttsOn = !ttsOn;
+        try { localStorage.setItem(TTS_KEY, ttsOn ? "1" : "0"); } catch (e) {}
+        if (!ttsOn && window.speechSynthesis) speechSynthesis.cancel();
+        renderSpk();
+        successBubble(ttsOn ? "تم تفعيل الرد الصوتي — بأقرأ لك الردود." : "تم إيقاف الرد الصوتي.");
+      };
+    }
 
     // mic: real Arabic speech recognition (Web Speech API); fallback fills a sample command
     var mic = q("#mic");
@@ -318,17 +341,15 @@
         rec.interimResults = true;
         rec.maxAlternatives = 1;
         rec.onresult = function (e) {
+          if (busy) return;
           var txt = "", fin = false;
           for (var i = 0; i < e.results.length; i++) {
             txt += e.results[i][0].transcript;
             if (e.results[i].isFinal) fin = true;
           }
           if (cmd) cmd.value = txt;
-          if (fin && txt.trim()) {
-            try { rec.stop(); } catch (err) {}
-            voiceMode = true;
-            handle(txt);
-          }
+          // done listening → leave the text in the field for the user to review and send
+          if (fin) { try { rec.stop(); } catch (err) {} }
         };
         rec.onend = function () {
           recognizing = false;
