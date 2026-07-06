@@ -195,6 +195,16 @@ footer a{color:var(--coral);font-weight:700;text-decoration:none}
 @keyframes micpulse{0%,100%{box-shadow:0 0 0 0 rgba(240,121,107,.55)}50%{box-shadow:0 0 0 13px rgba(240,121,107,0)}}
 #s-chat .warnrow{margin-top:12px;display:flex;gap:9px;align-items:flex-start;background:rgba(226,169,59,.13);border:1px solid rgba(226,169,59,.35);color:var(--gold);font-size:13px;font-weight:700;line-height:1.6;padding:11px 13px;border-radius:13px}
 #s-chat .warnrow svg{width:18px;height:18px;flex:none;margin-top:2px}
+#s-invest .tracknote{margin-top:7px;font-size:13px;font-weight:800}
+#s-invest .tracknote.ok{color:var(--green)}
+#s-invest .tracknote.warn{color:var(--gold)}
+#s-spend .budgets{margin-top:22px}
+#s-spend .budgets .rl{font-size:15px;font-weight:800;margin-bottom:12px}
+#s-spend .brow{margin-bottom:13px}
+#s-spend .bt{display:flex;justify-content:space-between;font-size:13.5px;font-weight:700;margin-bottom:6px}
+#s-spend .bt .bv{color:var(--muted);font-variant-numeric:tabular-nums}
+#s-spend .btrack{height:9px;border-radius:6px;background:var(--surface2);overflow:hidden}
+#s-spend .bfill{display:block;height:100%;border-radius:6px;transition:width .45s ease}
 /* ---------- motion: native-feel transitions ---------- */
 .page.active{animation:pagein .3s cubic-bezier(.22,.7,.3,1)}
 @keyframes pagein{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
@@ -236,9 +246,9 @@ body{overflow:hidden;overscroll-behavior:none;touch-action:manipulation;-webkit-
     <span class='chip2'>أوامر صوتية بالعربية</span>
     <span class='chip2'>بطاقة تأكيد قبل التنفيذ</span>
     <span class='chip2'>حماية ذكية من الاحتيال</span>
-    <span class='chip2'>إدارة مستفيدين</span>
+    <span class='chip2'>زكاة وميزانيات بالمحادثة</span>
+    <span class='chip2'>استثمار مرتبط بهدفك</span>
     <span class='chip2'>تحليل ذكي للمصروفات</span>
-    <span class='chip2'>خطط استثمار تفاعلية</span>
   </div>
 </div>
 <div class='device'><div class='screen'><div class="page active" id="s-home"><div class="island"></div><div class="statusbar"><span class="time">9:41</span><span class="sbi"><svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1" fill="#fff"/><rect x="5" y="5.5" width="3" height="6.5" rx="1" fill="#fff"/><rect x="10" y="3" width="3" height="9" rx="1" fill="#fff"/><rect x="15" y="0" width="3" height="12" rx="1" fill="#fff"/></svg><svg width="17" height="13" viewBox="0 0 17 13" fill="#fff"><path d="M8.5 2.4c2.9 0 5.6 1.1 7.6 3l-1.3 1.4C13.1 5.2 10.9 4.3 8.5 4.3S3.9 5.2 2.2 6.8L.9 5.4C2.9 3.5 5.6 2.4 8.5 2.4Z"/><path d="M8.5 6.3c1.7 0 3.3.7 4.4 1.8l-1.4 1.4c-.8-.8-1.8-1.2-3-1.2s-2.2.4-3 1.2L4.1 8.1C5.2 7 6.8 6.3 8.5 6.3Z"/><circle cx="8.5" cy="11" r="1.5"/></svg><svg width="27" height="13" viewBox="0 0 27 13"><rect x="1" y="1.2" width="21.5" height="10.6" rx="3" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1.2"/><rect x="2.6" y="2.8" width="16" height="7.4" rx="1.6" fill="#fff"/><rect x="24" y="4.6" width="1.7" height="3.8" rx=".8" fill="#fff" fill-opacity=".55"/></svg></span></div>
@@ -302,6 +312,10 @@ body{overflow:hidden;overscroll-behavior:none;touch-action:manipulation;-webkit-
     <div class="lg"><span class="ci" style="background:var(--c4)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2.5 21 6.5l-4 4"/><path d="M3 11V9.5a2 2 0 0 1 2-2h16"/><path d="M7 21.5 3 17.5l4-4"/><path d="M21 13v1.5a2 2 0 0 1-2 2H3"/></svg></span><span class="nm">تحويلات</span><span class="pc">15%</span><span class="am">963 ر.س</span></div>
     <div class="lg"><span class="ci" style="background:var(--c5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.3 7 12 12l8.7-5M12 12v9.5M3 7.5l9-4.5 9 4.5v9l-9 4.5-9-4.5Z"/></svg></span><span class="nm">أخرى</span><span class="pc">10%</span><span class="am">642 ر.س</span></div>
   </div>
+  <div class="budgets" id="budgets" style="display:none">
+    <div class="rl">الميزانيات الشهرية</div>
+    <div id="budgetlist"></div>
+  </div>
   <div class="insight">
     <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7L18.5 9.5 13.8 11.3 12 16l-1.8-4.7L5.5 9.5l4.7-1.8L12 3Z"/><path d="M19 14l.9 2.3 2.3.9-2.3.9L19 20.4l-.9-2.3-2.3-.9 2.3-.9L19 14Z"/></svg></div>
     <div class="tx"><span class="tag">رؤية من ثَروة</span>صرفت <b>20% أكثر</b> على المطاعم مقارنة بالشهر الماضي. لو قلّلت طلبات التوصيل تقدر <b>توفّر ~480 ر.س</b> شهرياً.</div>
@@ -312,7 +326,7 @@ body{overflow:hidden;overscroll-behavior:none;touch-action:manipulation;-webkit-
   <div class="th"><span class="back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>خطة الاستثمار</div>
   <div class="reco">
     <div class="rh"><span class="bot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7L18.5 9.5 13.8 11.3 12 16l-1.8-4.7L5.5 9.5l4.7-1.8L12 3Z"/><path d="M19 14l.9 2.3 2.3.9-2.3.9L19 20.4l-.9-2.3-2.3-.9 2.3-.9L19 14Z"/></svg></span>توصية ثَروة الذكية</div>
-    <div class="desc">بناءً على هدفك <b>(ادخار 20,000 ر.س خلال سنتين)</b> ومستوى مخاطرتك <b id="inv-risk-word">المتوسط</b>، نقترح خطة شهرية تلقائية:</div>
+    <div class="desc">هدفك: <b id="inv-goal">ادخار عام — 20,000 ر.س خلال 24 شهراً</b>. بمستوى مخاطرتك <b id="inv-risk-word">المتوسط</b> تحتاج تقريباً <b id="inv-needed">800 ر.س شهرياً</b> لتحقيقه:</div>
     <div class="plan"><div><div class="pl">الاستثمار الشهري</div><div class="pv" style="display:flex;align-items:center;gap:9px;margin-top:5px"><button class="stp" id="inv-plus">+</button><span id="inv-monthly">500</span><span class="c">ر.س</span><button class="stp" id="inv-minus">−</button></div></div><div style="text-align:left"><div class="pl">النمو المتوقع سنوياً</div><div class="pv g" id="inv-growth">+8.4%</div></div></div>
   </div>
   <div class="sec">
@@ -326,7 +340,8 @@ body{overflow:hidden;overscroll-behavior:none;touch-action:manipulation;-webkit-
     <div class="arow"><span class="ci" style="background:var(--gold)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7.5" ry="3"/><path d="M4.5 6v5c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3V6"/><path d="M4.5 11v5c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-5"/></svg></span><span class="nm">ذهب</span><span class="track"><span class="fill" style="width:20%;background:var(--gold)"></span></span><span class="pc">20%</span></div>
     <div class="arow"><span class="ci" style="background:var(--green)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9v6M18 9v6"/></svg></span><span class="nm">نقد / مرابحة</span><span class="track"><span class="fill" style="width:20%;background:var(--green)"></span></span><span class="pc">20%</span></div>
   </div>
-  <div class="proj"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>القيمة المتوقعة بعد سنتين: <span id="inv-proj">~13,100 ر.س</span></div>
+  <div class="proj"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>المتوقع بعد <span id="inv-months">24</span> شهراً (بعائد مركّب): <span id="inv-proj">~13,000 ر.س</span></div>
+  <div class="tracknote warn" id="inv-track"></div>
 </div>
 <div class="cta"><div class="b">ابدأ الخطة الآن<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></div></div>
 </div></div></div><div class='hint'>جرّب النموذج مباشرة: افتح شاشة «المساعد» من الشريط السفلي (أو زر «اسأل ثَروة»)، ثم اكتب أمراً طبيعياً مثل «حوّل ٥٠٠ لأحمد» — المساعد يفهمه بالذكاء الاصطناعي وينفّذه فعلياً.</div></div>
@@ -340,7 +355,9 @@ body{overflow:hidden;overscroll-behavior:none;touch-action:manipulation;-webkit-
   <div class='grid'>
     <div class='card'><h3>تحويلات بالمحادثة</h3><p>«حوّل ٥٠٠ لأحمد» → المساعد يفهم الأمر، يعرض بطاقة تأكيد فيها المستفيد والآيبان والمبلغ، وينفّذ فعلياً بعد موافقتك — ويحدّث الرصيد.</p></div>
     <div class='card'><h3>إدارة المستفيدين</h3><p>أضف مستفيداً جديداً بالمحادثة («أضف مستفيد اسمه خالد») ثم حوّل له مباشرة — الذكاء الاصطناعي يتذكّر مستفيديك.</p></div>
-    <div class='card'><h3>تحليل وتوصيات ذكية</h3><p>تحليل المصروفات حسب الفئات، ورؤى مالية فورية، وخطة استثمار تفاعلية تتغيّر حسب مستوى المخاطرة والمبلغ الشهري.</p></div>
+    <div class='card'><h3>خطة استثمار مرتبطة بهدف حقيقي</h3><p>«أبي أجمع 30 ألف لسيارة خلال سنة» — يحسب المساعد القسط الشهري المطلوب <b>بعائد مركّب</b> حسب مستوى المخاطرة، ويتأكد أنه ضمن فائضك الشهري (دخلك − مصروفاتك).</p></div>
+    <div class='card'><h3>زكاة وميزانيات بالمحادثة</h3><p>«احسب زكاتي» تعرض بطاقة بزكاة رصيدك (2.5%)، و«حط ميزانية 1500 للمطاعم» تضبط حد صرف يظهر بشريط تقدم في شاشة التحليل مع تنبيه عند التجاوز.</p></div>
+    <div class='card'><h3>مستشار مالي شخصي</h3><p>«قيّم وضعي المالي» — يحلّل نسبة الادخار من الدخل وأعلى فئات الصرف ويقدّم نصائح عملية من أرقامك الفعلية، لا نصائح عامة.</p></div>
     <div class='card'><h3>رؤى مالية فورية</h3><p>أسئلة طبيعية مثل «كم صرفت على المطاعم؟» أو «كم دفعت في العثيم؟» يجيب عنها المساعد بأرقام حقيقية من بيانات ومعاملات العميل.</p></div>
     <div class='card'><h3>أوامر صوتية بالعربية</h3><p>اضغط زر المايك وتكلّم — «حوّل خمسمية لأحمد» — يتحوّل صوتك إلى نص تراجعه قبل الإرسال، ومع خيار الرد الصوتي من زر السماعة. شمول حقيقي لكبار السن وضعاف البصر.</p></div>
     <div class='card'><h3>حماية ذكية قبل التنفيذ</h3><p>أي تحويل بمبلغ غير معتاد يظهر معه تنبيه حماية داخل بطاقة التأكيد — الذكاء الاصطناعي يقترح، والقرار النهائي دائماً بيد العميل.</p></div>

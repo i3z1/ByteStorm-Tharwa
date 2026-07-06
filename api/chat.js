@@ -49,17 +49,35 @@ function validIban(v) { return /^SA\d{20,24}$/.test(normIban(v)); }
 function fmtIban(v) { return normIban(v).replace(/(.{4})/g, "$1 ").trim(); }
 
 const RISKS = { "متحفظ": 5.1, "متوسط": 8.4, "جريء": 12.3 };
+const CATS = ["مطاعم", "تسوّق", "فواتير", "تحويلات", "أخرى"];
 
-const SYSTEM = (s) => `أنت «ثَروة»، مساعد بنكي ذكي داخل تطبيق بنكي سعودي (نموذج تجريبي).
+// future value of a monthly contribution at annualPct compound growth
+function fvMonthly(monthly, annualPct, months) {
+  const i = annualPct / 100 / 12;
+  return Math.round(monthly * ((Math.pow(1 + i, months) - 1) / i));
+}
+// monthly contribution needed to reach target in `months` (rounded up to 50)
+function neededMonthly(target, annualPct, months) {
+  const i = annualPct / 100 / 12;
+  return Math.max(50, Math.ceil((target * i / (Math.pow(1 + i, months) - 1)) / 50) * 50);
+}
+
+const SYSTEM = (s) => {
+  const totalExp = Math.round(Object.values(s.expenses).reduce((a, b) => a + b, 0));
+  const surplus = Math.max(0, Math.round(s.income - totalExp));
+  const g = s.invest.goal || {};
+  return `أنت «ثَروة»، مساعد بنكي ذكي داخل تطبيق بنكي سعودي (نموذج تجريبي).
 تتحدث بالعربية بلهجة سعودية بسيطة وودّية وباختصار (جملة إلى ثلاث جمل). لا تستخدم الرموز التعبيرية (emojis).
 العملة: الريال السعودي (ر.س). لا تخترع أرقاماً غير معطاة لك.
 
 بيانات العميل الحالية:
 - الرصيد: ${s.balance} ر.س في ${s.account}
+- الدخل الشهري: ${s.income} ر.س — إجمالي مصروفات الشهر: ${totalExp} ر.س — الفائض الشهري المتاح تقريباً: ${surplus} ر.س
 - مصروفات الشهر حسب الفئة: ${Object.entries(s.expenses).map(([k, v]) => k + ": " + v + " ر.س").join(" ، ")}
+- الميزانيات المضبوطة: ${Object.entries(s.budgets).map(([k, v]) => `${k}: صرف ${s.expenses[k] || 0} من حد ${v} ر.س`).join(" ، ") || "لا يوجد"}
 - آخر العمليات (الأحدث أولاً): ${s.txns.map((t) => `${t.name} — ${t.amount} ر.س ${t.dir === "in" ? "(دخل)" : "(صرف · " + t.cat + ")"} — ${t.when}`).join(" ، ") || "لا يوجد"}
 - المستفيدون المسجّلون: ${s.beneficiaries.map((b) => `${b.name} (${b.bank})`).join(" ، ") || "لا يوجد"}
-- خطة الاستثمار الحالية: ${s.invest.monthly} ر.س شهرياً — مستوى المخاطرة: ${s.invest.risk}
+- خطة الاستثمار الحالية: ${s.invest.monthly} ر.س شهرياً — مخاطرة: ${s.invest.risk} — الهدف: ${g.amount > 0 ? `${g.name} (${g.amount} ر.س خلال ${g.months} شهراً)` : "غير محدد"}
 
 قاعدة أساسية: الكلام وحده لا ينفّذ شيئاً — أي إجراء (بطاقة تحويل، إضافة مستفيد، خطة استثمار، فتح شاشة) يتم فقط عبر استدعاء الأداة فعلياً. لا تقل أبداً إن بطاقة أو شاشة ظهرت للعميل إذا لم تستدعِ الأداة في نفس هذا الرد.
 
@@ -67,10 +85,13 @@ const SYSTEM = (s) => `أنت «ثَروة»، مساعد بنكي ذكي داخ
 1) propose_transfer(amount, recipient): استدعها فور معرفة المبلغ واسم المستفيد — ستظهر للعميل بطاقة تأكيد تفاعلية فيها المستفيد والبنك والآيبان والمبلغ وزرّا تأكيد/إلغاء. إذا طابق الاسم المذكور مستفيداً واحداً فقط (ولو بالاسم الأول) فلا تسأل — اعتبره المقصود واستدعِ الأداة فوراً. اسأل فقط إذا نقص المبلغ أو كان الاسم يطابق أكثر من مستفيد. لا تسأل تأكيداً نصياً — البطاقة تتكفّل بذلك. إذا كان المستفيد غير مسجّل، اقترح إضافته كمستفيد جديد.
 2) execute_transfer(amount, recipient): التنفيذ الفعلي — لا تستدعها إلا إذا كتب العميل تأكيداً صريحاً بعد ظهور البطاقة.
 3) add_beneficiary(name, iban, bank): لإضافة مستفيد جديد لازم تجمع البيانات كاملة — الاسم الكامل + رقم الآيبان (يبدأ بحرفَي SA ثم 22 رقماً) + اسم البنك. اسأل العميل عن كل بيان ناقص واحداً واحداً: اطلب الآيبان أولاً، ثم اسم البنك. تحقّق أن الآيبان بالصيغة الصحيحة، وإذا كان ناقصاً أو خاطئاً اطلبه من جديد بلطف. لا تخترع آيباناً أو بنكاً أبداً، ولا تستدعِ الأداة إلا بعد أن يعطيك العميل الآيبان واسم البنك فعلياً. بعد نجاح الإضافة تظهر للعميل بطاقة المستفيد بكل تفاصيله. (ملاحظة: المستفيدون المسجّلون مسبقاً معروفة بياناتهم — لا تسأل عنها عند التحويل لهم.)
-4) set_investment_plan(monthly, risk): عند طلب خطة استثمار أو تغيير المبلغ/المخاطرة. المستويات: متحفظ (~5.1% نمواً)، متوسط (~8.4%)، جريء (~12.3%). ستُفتح شاشة الاستثمار تلقائياً بالتوزيع المناسب.
-5) open_screen(screen): لفتح شاشة home أو spend أو invest عند الطلب.
+4) set_investment_plan(monthly, risk, goal_name, goal_amount, goal_months): عند طلب خطة استثمار أو هدف ادخار (مثل: «أبي أجمع 30 ألف لسيارة خلال سنة» → goal_name سيارة، goal_amount 30000، goal_months 12). إذا لم يحدد العميل مبلغاً شهرياً لا ترسل monthly — سيُحسب تلقائياً القسط الذي يحقق الهدف بعائد مركّب. المستويات: متحفظ (~5.1%)، متوسط (~8.4%)، جريء (~12.3%) — إن لم يحدد استخدم متوسط. ستُفتح شاشة الاستثمار تلقائياً.
+5) set_budget(category, amount): عند طلب ضبط ميزانية أو حد صرف لفئة (الفئات: مطاعم، تسوّق، فواتير، تحويلات، أخرى). تظهر بشريط تقدم في شاشة التحليل.
+6) calculate_zakat(): عند سؤال العميل عن زكاته — تحسب 2.5% من رصيده وتعرض بطاقة. وضّح دائماً أنه تقدير توعوي.
+7) open_screen(screen): لفتح شاشة home أو spend أو invest عند الطلب.
 
-قواعد: أجب عن أسئلة الرصيد والمصروفات والمستفيدين مباشرة من البيانات أعلاه. التزم بالنطاق البنكي فقط، وإذا سُئلت خارجه اعتذر بلطف ووجّه العميل لما تقدر تساعده فيه.`;
+قواعد: أجب عن أسئلة الرصيد والمصروفات والدخل والمستفيدين مباشرة من البيانات أعلاه. إذا طلب العميل تقييم وضعه المالي فحلّل من الأرقام (نسبة الادخار من الدخل، أعلى فئات الصرف، تجاوز الميزانيات) وقدّم نصيحتين أو ثلاثاً عملية مختصرة. إذا اقترحت خطة استثمار تأكد أن القسط ضمن الفائض الشهري وإلا نبّه العميل بلطف. التزم بالنطاق البنكي فقط، وإذا سُئلت خارجه اعتذر بلطف ووجّه العميل لما تقدر تساعده فيه.`;
+};
 
 const TOOLS = [{
   function_declarations: [
@@ -113,15 +134,35 @@ const TOOLS = [{
     },
     {
       name: "set_investment_plan",
-      description: "يضبط خطة الاستثمار الشهرية للعميل ويفتح شاشة الاستثمار بالتوزيع المناسب.",
+      description: "يضبط خطة استثمار مرتبطة بهدف ادخار: يحسب القسط الشهري المطلوب بعائد مركّب ويفتح شاشة الاستثمار. مرّر الهدف إذا ذكره العميل، ولا تمرّر monthly إلا إذا حدده العميل صراحة.",
       parameters: {
         type: "OBJECT",
         properties: {
-          monthly: { type: "NUMBER", description: "المبلغ الشهري بالريال" },
-          risk: { type: "STRING", enum: ["متحفظ", "متوسط", "جريء"], description: "مستوى المخاطرة" }
+          monthly: { type: "NUMBER", description: "المبلغ الشهري بالريال (اتركه إذا لم يحدده العميل — سيُحسب من الهدف)" },
+          risk: { type: "STRING", enum: ["متحفظ", "متوسط", "جريء"], description: "مستوى المخاطرة (متوسط إن لم يُحدد)" },
+          goal_name: { type: "STRING", description: "اسم الهدف، مثل: سيارة، زواج، طوارئ" },
+          goal_amount: { type: "NUMBER", description: "مبلغ الهدف بالريال" },
+          goal_months: { type: "NUMBER", description: "مدة الهدف بالأشهر" }
         },
-        required: ["monthly", "risk"]
+        required: []
       }
+    },
+    {
+      name: "set_budget",
+      description: "يضبط ميزانية شهرية (حد صرف) لفئة مصروفات، وتظهر بشريط تقدم في شاشة تحليل المصروفات.",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          category: { type: "STRING", description: "الفئة: مطاعم، تسوّق، فواتير، تحويلات، أخرى" },
+          amount: { type: "NUMBER", description: "حد الميزانية الشهري بالريال" }
+        },
+        required: ["category", "amount"]
+      }
+    },
+    {
+      name: "calculate_zakat",
+      description: "يحسب زكاة رصيد العميل الحالي (2.5%) كتقدير توعوي ويعرض بطاقة بالتفاصيل.",
+      parameters: { type: "OBJECT", properties: {} }
     },
     {
       name: "open_screen",
@@ -188,13 +229,43 @@ function doAddBen(args, s, actions) {
 }
 
 function doInvest(args, s, actions) {
-  const risk = Object.prototype.hasOwnProperty.call(RISKS, normAr(args.risk)) ? normAr(args.risk) : "متوسط";
+  const risk = Object.prototype.hasOwnProperty.call(RISKS, normAr(args.risk)) ? normAr(args.risk) : (s.invest.risk || "متوسط");
+  const g = Object.assign({ name: "ادخار عام", amount: 20000, months: 24 }, s.invest.goal || {});
+  if (Number(args.goal_amount) > 0) {
+    g.amount = Math.min(10000000, Math.round(Number(args.goal_amount)));
+    g.months = Number(args.goal_months) > 0 ? Math.min(120, Math.round(Number(args.goal_months))) : 24;
+    g.name = String(args.goal_name || "هدف ادخار").slice(0, 40);
+  }
   let monthly = Number(args.monthly);
-  if (!(monthly > 0)) monthly = s.invest.monthly || 500;
+  if (!(monthly > 0)) monthly = neededMonthly(g.amount, RISKS[risk], g.months);
   monthly = Math.max(250, Math.min(20000, Math.round(monthly / 50) * 50));
-  s.invest = { monthly, risk };
-  actions.push({ type: "invest_plan", monthly, risk });
-  return { ok: true, note: `تم إعداد الخطة: ${monthly} ر.س شهرياً بمستوى «${risk}» (نمو متوقع ~${RISKS[risk]}%). تم فتح شاشة الاستثمار للعميل.` };
+  const projected = fvMonthly(monthly, RISKS[risk], g.months);
+  const surplus = Math.max(0, Math.round(s.income - Object.values(s.expenses).reduce((a, b) => a + b, 0)));
+  s.invest = { monthly, risk, goal: g };
+  actions.push({ type: "invest_plan", monthly, risk, goal: g, projected });
+  const fit = projected >= g.amount ? "الخطة تحقق الهدف" : "المتوقع أقل من الهدف — اقترح على العميل زيادة القسط أو المدة";
+  const afford = monthly > surplus ? ` انتبه: القسط أعلى من فائض العميل الشهري (~${surplus} ر.س) — نبّهه بلطف.` : ` القسط ضمن فائض العميل الشهري (~${surplus} ر.س).`;
+  return { ok: true, note: `الخطة: ${monthly} ر.س شهرياً بمستوى «${risk}» (~${RISKS[risk]}% سنوياً). الهدف: ${g.name} — ${g.amount} ر.س خلال ${g.months} شهراً. المتوقع تجميعه بعائد مركّب: ~${projected} ر.س (${fit}).${afford} فُتحت شاشة الاستثمار للعميل.` };
+}
+
+function doBudget(args, s, actions) {
+  const raw = normAr(args.category);
+  const cat = CATS.find((c) => normAr(c) === raw || normAr(c).indexOf(raw) > -1 || raw.indexOf(normAr(c)) > -1) || "";
+  if (!cat) return { ok: false, note: "الفئة غير معروفة — الفئات المتاحة: " + CATS.join("، ") + ". اسأل العميل أي فئة يقصد." };
+  let amount = Number(args.amount);
+  if (!(amount > 0)) return { ok: false, note: "المبلغ غير صالح — اطلب من العميل حد الميزانية الشهري." };
+  amount = Math.max(50, Math.min(100000, Math.round(amount / 50) * 50));
+  s.budgets[cat] = amount;
+  const spent = s.expenses[cat] || 0;
+  actions.push({ type: "budget", category: cat, amount, spent });
+  const pct = Math.round(spent / amount * 100);
+  return { ok: true, note: `تم ضبط ميزانية «${cat}» عند ${amount} ر.س شهرياً. المصروف حتى الآن ${spent} ر.س (${pct}%).${spent >= amount ? " العميل متجاوز الميزانية بالفعل — نبّهه بلطف." : ""} تظهر بشريط تقدم في شاشة التحليل.` };
+}
+
+function doZakat(s, actions) {
+  const amount = Math.round(s.balance * 0.025 * 100) / 100;
+  actions.push({ type: "zakat", amount, base: s.balance });
+  return { ok: true, note: `الزكاة التقديرية: 2.5% من الرصيد الحالي (${s.balance} ر.س) = ${amount} ر.س. ظهرت بطاقة للعميل. وضّح أنه تقدير توعوي يفترض حولان الحول وبلوغ النصاب، وأن عليه ضم بقية أمواله الزكوية.` };
 }
 
 function doOpen(args, actions) {
@@ -224,6 +295,15 @@ export default async function handler(req, res) {
   const s = {
     balance: typeof inState.balance === "number" && isFinite(inState.balance) ? inState.balance : 24580,
     account: String(inState.account || "الجاري · •••• 9000").slice(0, 60),
+    income: (typeof inState.income === "number" && isFinite(inState.income) && inState.income > 0) ? Math.min(1000000, inState.income) : 12000,
+    budgets: (() => {
+      const b = {}, src = inState.budgets || {};
+      Object.keys(src).slice(0, 10).forEach((k) => {
+        const v = Number(src[k]);
+        if (v > 0) b[String(k).slice(0, 20)] = Math.min(100000, v);
+      });
+      return b;
+    })(),
     expenses: Object.assign({}, inState.expenses || { "مطاعم": 2247, "تسوّق": 1412, "فواتير": 1156, "تحويلات": 963, "أخرى": 642 }),
     beneficiaries: Array.isArray(inState.beneficiaries) && inState.beneficiaries.length
       ? inState.beneficiaries.slice(0, 30).map((b) => ({
@@ -243,7 +323,16 @@ export default async function handler(req, res) {
       : DEFAULT_TXNS.map((t) => Object.assign({}, t)),
     invest: {
       monthly: (inState.invest && Number(inState.invest.monthly) > 0) ? Number(inState.invest.monthly) : 500,
-      risk: (inState.invest && RISKS[normAr(inState.invest.risk)] !== undefined) ? normAr(inState.invest.risk) : "متوسط"
+      risk: (inState.invest && RISKS[normAr(inState.invest.risk)] !== undefined) ? normAr(inState.invest.risk) : "متوسط",
+      goal: (() => {
+        const g = (inState.invest && inState.invest.goal) || {};
+        const amount = Number(g.amount);
+        return {
+          name: String(g.name || "ادخار عام").slice(0, 40),
+          amount: amount > 0 ? Math.min(10000000, Math.round(amount)) : 20000,
+          months: Number(g.months) > 0 ? Math.min(120, Math.round(Number(g.months))) : 24
+        };
+      })()
     }
   };
 
@@ -314,6 +403,8 @@ export default async function handler(req, res) {
     if (last.type === "confirm") return "جهّزت لك بطاقة التأكيد — راجع التفاصيل واضغط «تأكيد التحويل».";
     if (last.type === "beneficiary") return `تمت إضافة ${last.name} إلى مستفيديك — تقدر تحوّل له مباشرة.`;
     if (last.type === "invest_plan") return `جهّزت لك الخطة: ${last.monthly} ر.س شهرياً بمستوى «${last.risk}» — افتح شاشة الاستثمار وشوف التفاصيل.`;
+    if (last.type === "budget") return `تم ضبط ميزانية ${last.category} عند ${last.amount} ر.س شهرياً — تشوفها في شاشة التحليل.`;
+    if (last.type === "zakat") return `زكاتك التقديرية ${last.amount} ر.س (2.5% من رصيدك الحالي).`;
     if (last.type === "transfer" && last.ok) return `تم تنفيذ التحويل بنجاح. رصيدك الحالي ${s.balance} ر.س.`;
     if (last.type === "transfer") return "تعذّر تنفيذ التحويل: الرصيد غير كافٍ.";
     if (last.type === "open") return "فتحت لك الشاشة.";
@@ -352,6 +443,8 @@ export default async function handler(req, res) {
         else if (name === "execute_transfer") out = doExecute(fargs, s, actions);
         else if (name === "add_beneficiary") out = doAddBen(fargs, s, actions);
         else if (name === "set_investment_plan") out = doInvest(fargs, s, actions);
+        else if (name === "set_budget") out = doBudget(fargs, s, actions);
+        else if (name === "calculate_zakat") out = doZakat(s, actions);
         else if (name === "open_screen") out = doOpen(fargs, actions);
         else out = { ok: false, note: "أداة غير معروفة." };
         respParts.push({ functionResponse: { name, response: out } });

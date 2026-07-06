@@ -8,13 +8,15 @@
   var state = {
     balance: 24580.00,
     account: "الجاري · •••• 9000",
+    income: 12000,
+    budgets: {},
     expenses: { "مطاعم": 2247, "تسوّق": 1412, "فواتير": 1156, "تحويلات": 963, "أخرى": 642 },
     beneficiaries: [
       { name: "أحمد العتيبي", bank: "مصرف الإنماء", iban: "SA44 0500 0068 2016 1234 9101" },
       { name: "سارة القحطاني", bank: "مصرف الراجحي", iban: "SA03 8000 0000 6080 1016 7519" },
       { name: "محمد الزهراني", bank: "البنك الأهلي SNB", iban: "SA71 1000 0011 2233 4455 6677" }
     ],
-    invest: { monthly: 500, risk: "متوسط" },
+    invest: { monthly: 500, risk: "متوسط", goal: { name: "ادخار عام", amount: 20000, months: 24 } },
     txns: [
       { name: "مطعم النخيل", cat: "مطاعم", amount: 85, dir: "out", when: "اليوم 1:24 م" },
       { name: "سوبرماركت العثيم", cat: "تسوّق", amount: 243.5, dir: "out", when: "أمس 6:10 م" },
@@ -68,19 +70,49 @@
     while (ul.children.length > 4) ul.removeChild(ul.lastChild);
   }
 
-  // ---------------- INVEST SCREEN (interactive) ----------------
+  // ---------------- BUDGETS (spend screen) ----------------
+  function renderBudgets() {
+    var wrap = q("#budgets"), list = q("#budgetlist");
+    if (!wrap || !list) return;
+    var keys = Object.keys(state.budgets || {});
+    wrap.style.display = keys.length ? "block" : "none";
+    list.innerHTML = "";
+    keys.forEach(function (k) {
+      var b = state.budgets[k], sp = state.expenses[k] || 0;
+      var pc = Math.min(100, Math.round(sp / b * 100));
+      var color = sp >= b ? "var(--red)" : (sp >= b * 0.7 ? "var(--gold)" : "var(--green)");
+      var row = document.createElement("div");
+      row.className = "brow";
+      row.innerHTML = '<div class="bt"><span>' + esc(k) + '</span><span class="bv">' + fmt0(sp) + ' / ' + fmt0(b) + ' ر.س</span></div>'
+        + '<div class="btrack"><span class="bfill" style="width:' + pc + '%;background:' + color + '"></span></div>';
+      list.appendChild(row);
+    });
+  }
+
+  // ---------------- INVEST SCREEN (goal-driven, compound growth) ----------------
   var RISKS = {
     "متحفظ": { pos: "88%", growth: 5.1, alloc: [30, 20, 50], word: "المتحفظ" },
     "متوسط": { pos: "50%", growth: 8.4, alloc: [60, 20, 20], word: "المتوسط" },
     "جريء": { pos: "12%", growth: 12.3, alloc: [80, 15, 5], word: "الجريء" }
   };
+  function fvMonthly(monthly, annualPct, months) {
+    var i = annualPct / 100 / 12;
+    return Math.round(monthly * ((Math.pow(1 + i, months) - 1) / i));
+  }
+  function neededMonthly(target, annualPct, months) {
+    var i = annualPct / 100 / 12;
+    return Math.max(50, Math.ceil((target * i / (Math.pow(1 + i, months) - 1)) / 50) * 50);
+  }
   function applyInvest(monthly, risk) {
     risk = deTashkeel(risk);
     if (!RISKS[risk]) risk = "متوسط";
     var r = RISKS[risk];
     monthly = Math.max(250, Math.min(20000, Math.round((Number(monthly) || state.invest.monthly || 500) / 50) * 50));
-    state.invest = { monthly: monthly, risk: risk };
+    var goal = (state.invest && state.invest.goal) || { name: "ادخار عام", amount: 20000, months: 24 };
+    state.invest = { monthly: monthly, risk: risk, goal: goal };
 
+    var gl = q("#inv-goal"); if (gl) gl.textContent = goal.name + " — " + fmt0(goal.amount) + " ر.س خلال " + goal.months + " شهراً";
+    var nd = q("#inv-needed"); if (nd) nd.textContent = fmt0(neededMonthly(goal.amount, r.growth, goal.months)) + " ر.س شهرياً";
     var m = q("#inv-monthly"); if (m) m.textContent = fmt0(monthly);
     var k = q("#inv-knob"); if (k) k.style.left = r.pos;
     qa("#s-invest .rlabels span").forEach(function (sp) {
@@ -93,8 +125,17 @@
       if (pcs[i]) pcs[i].textContent = p + "%";
     });
     var w = q("#inv-risk-word"); if (w) w.textContent = r.word;
-    var proj = Math.round((monthly * 24 * (1 + r.growth / 100)) / 100) * 100;
+    var proj = fvMonthly(monthly, r.growth, goal.months);
+    var mo = q("#inv-months"); if (mo) mo.textContent = goal.months;
     var pj = q("#inv-proj"); if (pj) pj.textContent = "~" + fmt0(proj) + " ر.س";
+    var tr = q("#inv-track");
+    if (tr) {
+      var ok = proj >= goal.amount;
+      tr.className = "tracknote " + (ok ? "ok" : "warn");
+      tr.textContent = ok
+        ? "الخطة تحقق هدفك — متوقع " + fmt0(proj) + " من " + fmt0(goal.amount) + " ر.س"
+        : "أقل من هدفك بـ " + fmt0(goal.amount - proj) + " ر.س — زد القسط أو المدة";
+    }
     var cta = q("#s-invest .cta .b");
     if (cta && cta.dataset.on) cta.innerHTML = ICON_CHECK + "الخطة مفعّلة — " + fmt0(monthly) + " ر.س شهرياً";
   }
@@ -195,7 +236,7 @@
       }).then(function (r) { return r.json(); }).then(function (data) {
         if (t.parentNode) t.remove();
         if (data.error) { errorBubble(data.error); busy = false; return; }
-        if (data.state) state = data.state;
+        if (data.state) { state = data.state; renderBudgets(); }
         var ok = (data.actions || []).some(function (x) { return x.type === "transfer" && x.ok; });
         settle(ok ? "تم التنفيذ" : "فشل", ok ? "var(--green)" : "#F0796B");
         if (data.reply) { history.push({ role: "assistant", text: data.reply }); speak(data.reply); }
@@ -227,6 +268,19 @@
     log.appendChild(card); scrollChat();
   }
 
+  // ---------------- ZAKAT CARD ----------------
+  var ICON_COINS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7.5" ry="3"/><path d="M4.5 6v5c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3V6"/><path d="M4.5 11v5c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-5"/></svg>';
+  function renderZakatCard(a) {
+    var card = document.createElement("div");
+    card.className = "tcard";
+    card.innerHTML =
+      '<div class="h"><span class="ti">' + ICON_COINS + '</span>حاسبة الزكاة<span class="badge">2.5%</span></div>'
+      + cardRow("الوعاء — رصيدك الحالي", '<span class="v">' + fmt(a.base) + '</span>')
+      + '<div class="r big"><span class="k">زكاتك التقديرية</span><span class="v">' + fmt(a.amount) + '<span class="c">ر.س</span></span></div>'
+      + '<div class="r" style="color:var(--muted);font-size:12.5px">تقدير توعوي — يفترض حولان الحول وبلوغ النصاب</div>';
+    log.appendChild(card); scrollChat();
+  }
+
   // ---------------- APPLY ACTIONS FROM SERVER ----------------
   function applyActions(actions) {
     if (!actions) return;
@@ -244,6 +298,12 @@
       } else if (a.type === "invest_plan") {
         applyInvest(a.monthly, a.risk);
         setTimeout(function () { show("s-invest"); }, 1100);
+      } else if (a.type === "budget") {
+        renderBudgets();
+        successBubble("تم ضبط ميزانية " + a.category + ": " + fmt0(a.amount) + " ر.س شهرياً.");
+        setTimeout(function () { show("s-spend"); }, 1100);
+      } else if (a.type === "zakat") {
+        renderZakatCard(a);
       } else if (a.type === "open" && a.screen) {
         var map = { home: "s-home", spend: "s-spend", invest: "s-invest", chat: "s-chat" };
         var target = map[a.screen];
@@ -278,7 +338,7 @@
         busy = false; return;
       }
       var data = res.data;
-      if (data.state) state = data.state;
+      if (data.state) { state = data.state; renderBudgets(); }
       if (data.reply) { botMsg(rich(data.reply)); history.push({ role: "assistant", text: data.reply }); speak(data.reply); }
       applyActions(data.actions);
       busy = false;
@@ -292,20 +352,22 @@
   // ---------------- SUGGESTION CHIPS ----------------
   var CHIPS = [
     "حوّل 500 لأحمد",
-    "أضف مستفيد جديد",
-    "من هم المستفيدون عندي؟",
+    "أبي أجمع 30 ألف لسيارة خلال سنة",
+    "احسب زكاتي",
+    "حط ميزانية 1500 للمطاعم",
+    "قيّم وضعي المالي",
     "كم صرفت على المطاعم؟",
-    "أبي خطة استثمار جريئة بـ 1000 شهرياً",
-    "كم رصيدي؟"
+    "أضف مستفيد جديد"
   ];
 
   // ---------------- INIT ----------------
   function init() {
     log = q("#chatlog");
     renderHome();
+    renderBudgets();
 
     // greeting
-    botMsg("أهلاً بك، أنا <b>ثَروة</b> — مساعدك البنكي الذكي. أنفّذ تحويلاتك، أضيف مستفيدين جدد، أحلّل مصروفاتك، وأجهّز لك خطط استثمار. اكتب طلبك بلغتك الطبيعية، أو اضغط زر <b>المايك</b> وتكلّم — يتحوّل كلامك إلى نص تراجعه ثم ترسله. ولو تبي ردوداً صوتية، فعّل زر <b>السماعة</b> بالأعلى.");
+    botMsg("أهلاً بك، أنا <b>ثَروة</b> — مساعدك البنكي الذكي. أنفّذ تحويلاتك، أحسب زكاتك، أضبط ميزانياتك، أقيّم وضعك المالي، وأجهّز لك خطة استثمار توصلك لهدفك. اكتب طلبك بلغتك الطبيعية أو اضغط زر <b>المايك</b> وتكلّم. ولو تبي ردوداً صوتية، فعّل زر <b>السماعة</b> بالأعلى.");
 
     var chips = q("#chips");
     if (chips) CHIPS.forEach(function (cText) {
