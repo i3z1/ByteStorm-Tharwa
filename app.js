@@ -151,10 +151,28 @@
   var recognizing = false;
   var rec = null;
 
-  var ttsAudio = null;
+  var SILENT_WAV = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=";
   var ttsNodes = [];
   var ttsGen = 0; // bump to cancel any in-flight speech
   var audioCtx = null;
+  var ttsEl = null;      // one persistent <audio> — unlocked once by a tap, reused forever
+  var elUnlocked = false;
+  function getEl() {
+    if (!ttsEl) {
+      ttsEl = new Audio();
+      ttsEl.setAttribute("playsinline", "");
+    }
+    return ttsEl;
+  }
+  function unlockEl() {
+    // must run inside a user tap: playing a silent clip unlocks this element on phones
+    if (elUnlocked) return;
+    var el = getEl();
+    try {
+      el.src = SILENT_WAV;
+      el.play().then(function () { elUnlocked = true; }).catch(function () {});
+    } catch (e) {}
+  }
   function getCtx() {
     var AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return null;
@@ -167,7 +185,7 @@
   }
   function stopSpeak() {
     ttsGen++;
-    if (ttsAudio) { try { ttsAudio.pause(); } catch (e) {} ttsAudio = null; }
+    if (ttsEl) { try { ttsEl.pause(); } catch (e) {} }
     for (var i = 0; i < ttsNodes.length; i++) { try { ttsNodes[i].stop(); } catch (e) {} }
     ttsNodes = [];
     if (window.speechSynthesis) { try { speechSynthesis.cancel(); } catch (e) {} }
@@ -226,25 +244,28 @@
     if (!ttsOn) return;
     try { fetch("/api/tts").catch(function () {}); } catch (e) {}
   }
-  function playJson(d, clean) {
-    if (!ttsOn) return;
-    if (!d || !d.a) { browserSpeak(clean); return; }
-    var src = d.m === "mp3" ? "data:audio/mpeg;base64," + d.a : pcmToWavUrl(d.a, d.r || 24000);
-    ttsAudio = new Audio(src);
-    ttsAudio.play().catch(function () { browserSpeak(clean); });
+  function playEl(d, clean, onReady) {
+    if (!ttsOn || !d || !d.a) { if (onReady) onReady(); browserSpeak(clean); return; }
+    var el = getEl();
+    el.src = d.m === "mp3" ? "data:audio/mpeg;base64," + d.a : pcmToWavUrl(d.a, d.r || 24000);
+    if (onReady) onReady();
+    el.play().catch(function () { browserSpeak(clean); });
   }
-  function postSpeak(clean) {
+  function postSpeak(clean, myGen, onReady) {
     return fetch("/api/tts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text: clean })
     }).then(function (r) { return r.json(); })
-      .then(function (d) { playJson(d, clean); })
-      .catch(function () { browserSpeak(clean); });
+      .then(function (d) {
+        if (myGen !== ttsGen) { if (onReady) onReady(); return; }
+        playEl(d, clean, onReady);
+      })
+      .catch(function () { if (onReady) onReady(); browserSpeak(clean); });
   }
-  // streaming: schedule PCM chunks through Web Audio as they arrive —
-  // playback starts on the first chunk instead of waiting for the full clip
-  function streamSpeak(clean) {
+  // streaming (desktop): schedule PCM chunks through Web Audio as they arrive —
+  // playback starts on the first chunk; onFirst fires right as audio begins
+  function streamSpeak(clean, onFirst) {
     var ctx = getCtx();
     if (!ctx || !window.ReadableStream || !window.TextDecoder) return Promise.reject(0);
     var myGen = ttsGen;
@@ -255,12 +276,17 @@
     }).then(function (resp) {
       if (!resp.ok || !resp.body) throw 0;
       var ct = resp.headers.get("content-type") || "";
-      if (ct.indexOf("ndjson") === -1) return resp.json().then(function (d) { playJson(d, clean); });
+      if (ct.indexOf("ndjson") === -1) {
+        return resp.json().then(function (d) {
+          if (myGen !== ttsGen) { if (onFirst) onFirst(); return; }
+          playEl(d, clean, onFirst);
+        });
+      }
       var reader = resp.body.getReader(), dec = new TextDecoder();
       var buf = "", nextT = 0, got = false;
       function pump() {
         return reader.read().then(function (rr) {
-          if (myGen !== ttsGen || !ttsOn) { try { reader.cancel(); } catch (e) {} return; }
+          if (myGen !== ttsGen || !ttsOn) { try { reader.cancel(); } catch (e) {} if (onFirst) onFirst(); return; }
           if (rr.value) buf += dec.decode(rr.value, { stream: true });
           var i;
           while ((i = buf.indexOf("\n")) > -1) {
@@ -268,7 +294,7 @@
             buf = buf.slice(i + 1);
             if (!line) continue;
             var obj; try { obj = JSON.parse(line); } catch (e) { continue; }
-            if (obj.m === "mp3" && obj.a) { playJson(obj, clean); got = true; continue; }
+            if (obj.m === "mp3" && obj.a) { playEl(obj, clean, got ? null : onFirst); got = true; continue; }
             if (!obj.a) continue;
             var pcm = b64ToF32(obj.a);
             if (!pcm.length) continue;
@@ -277,6 +303,7 @@
             var srcN = ctx.createBufferSource();
             srcN.buffer = ab;
             srcN.connect(ctx.destination);
+            if (!got && onFirst) onFirst();
             var t = Math.max(ctx.currentTime + (got ? 0 : 0.06), nextT);
             srcN.start(t);
             nextT = t + ab.duration;
@@ -290,17 +317,31 @@
       return pump();
     });
   }
-  function speak(text) {
-    if (!ttsOn || recognizing) return;
+  // speakReady: fires onReady exactly once — at the moment audio starts,
+  // or immediately on any failure/timeout, so the text is never held hostage
+  function speakReady(text, onReady) {
+    var fired = false;
+    function go() { if (!fired) { fired = true; if (onReady) onReady(); } }
+    if (!ttsOn || recognizing) { go(); return; }
     var clean = speakable(String(text).replace(/\*\*/g, "").trim());
-    if (!clean) return;
+    if (!clean) { go(); return; }
     stopSpeak();
     var myGen = ttsGen;
-    streamSpeak(clean).catch(function () {
-      if (myGen !== ttsGen || !ttsOn) return;
-      postSpeak(clean);
+    var guard = setTimeout(go, 6500);
+    function ready() { clearTimeout(guard); go(); }
+    var fine = window.matchMedia && matchMedia("(hover: hover) and (pointer: fine)").matches;
+    if (!fine) {
+      // phones: full clip via the persistent unlocked <audio>
+      // (plays reliably, and on iPhone it also bypasses the silent switch)
+      postSpeak(clean, myGen, ready);
+      return;
+    }
+    streamSpeak(clean, ready).catch(function () {
+      if (myGen !== ttsGen || !ttsOn) { ready(); return; }
+      postSpeak(clean, myGen, ready);
     });
   }
+  function speak(text) { speakReady(text, null); }
 
   // ---------------- CHAT UI ----------------
   var log;
@@ -494,7 +535,7 @@
     text = (text || "").trim();
     if (!text || busy) return;
     if (recognizing && rec) { try { rec.stop(); } catch (e) {} }
-    if (ttsOn) unlockAudio();
+    if (ttsOn) { unlockAudio(); unlockEl(); }
     busy = true;
     userMsg(text);
     var c = q("#cmd"); if (c) c.value = "";
@@ -508,16 +549,29 @@
     }).then(function (r) {
       return r.json().then(function (data) { return { ok: r.ok, data: data }; });
     }).then(function (res) {
-      if (t.parentNode) t.remove();
       if (!res.ok || res.data.error) {
+        if (t.parentNode) t.remove();
         errorBubble(res.data && res.data.error ? res.data.error : "تعذّر الاتصال بالمساعد حالياً.");
         busy = false; return;
       }
       var data = res.data;
       if (data.state) { state = data.state; renderBudgets(); }
-      if (data.reply) { botMsg(rich(data.reply)); history.push({ role: "assistant", text: data.reply }); speak(data.reply); }
-      applyActions(data.actions);
-      busy = false;
+      if (data.reply) history.push({ role: "assistant", text: data.reply });
+      var revealed = false;
+      var reveal = function () {
+        if (revealed) return;
+        revealed = true;
+        if (t.parentNode) t.remove();
+        if (data.reply) botMsg(rich(data.reply));
+        applyActions(data.actions);
+        busy = false;
+      };
+      if (data.reply && ttsOn && !recognizing) {
+        // voice on → keep the typing dots and reveal the text exactly when audio starts
+        speakReady(data.reply, reveal);
+      } else {
+        reveal();
+      }
     }).catch(function () {
       if (t.parentNode) t.remove();
       errorBubble("تعذّر الاتصال بالمساعد. تأكد من الاتصال بالإنترنت وحاول مرة ثانية.");
@@ -570,8 +624,8 @@
         try { localStorage.setItem(TTS_KEY, ttsOn ? "1" : "0"); } catch (e) {}
         if (!ttsOn) stopSpeak();
         else {
-          // play a silent clip inside this tap → unlocks audio autoplay on phones
-          try { new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=").play().catch(function () {}); } catch (e) {}
+          // unlock audio inside this tap → phones allow later playback
+          unlockEl();
           unlockAudio();
           warmTts();
         }
