@@ -394,7 +394,9 @@ export default async function handler(req, res) {
       contents,
       tools: TOOLS,
       tool_config: { function_calling_config: { mode: "AUTO" } },
-      generationConfig: { maxOutputTokens: 800, temperature: 0.4 }
+      // thinkingBudget 0: replies come straight out — no hidden "thinking" tokens
+      // eating the output budget (that's what was truncating replies mid-sentence)
+      generationConfig: { maxOutputTokens: 1024, temperature: 0.4, thinkingConfig: { thinkingBudget: 0 } }
     });
     let lastErr = null;
     for (let attempt = 0; attempt < 2; attempt++) {
