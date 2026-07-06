@@ -56,7 +56,7 @@ npm i -g vercel && vercel dev
 ```
 
 ## 📌 ملاحظة
-هذا **نموذج أوّلي (~30% من المشروع)**: البيانات والمعاملات **اصطناعية/محاكاة** ولا يتصل بأي بنك حقيقي أو أموال حقيقية — وهو ما يتوافق مع مرحلة النموذج التجريبي.
+البيانات والمعاملات في هذا النموذج **اصطناعية/محاكاة** ولا يتصل بأي بنك حقيقي أو أموال حقيقية — أما فهم الأوامر والتنفيذ عبر الأدوات فهو **حقيقي بالكامل** (Gemini Function-Calling).
 
 ---
 *Built for the Amد 2026 hackathon by ByteStorm. A working prototype — simulated banking data, real generative-AI command understanding via Gemini function-calling.*

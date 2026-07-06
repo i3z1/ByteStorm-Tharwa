@@ -160,21 +160,76 @@ background:conic-gradient(var(--c1) 0 35%,var(--c2) 35% 57%,var(--c3) 57% 75%,va
 #s-chat .hdr{position:absolute;top:0;left:0;right:0;z-index:14}#s-chat .chat{position:absolute;top:118px;bottom:150px;left:0;right:0;overflow-y:auto;padding:18px 16px 10px;display:flex;flex-direction:column;gap:14px}#s-chat .chat::-webkit-scrollbar{width:0}#s-chat input.inbox{border:none;outline:none;color:var(--text);font-family:inherit}#s-chat input.inbox::placeholder{color:var(--muted)}.sgchips{position:absolute;bottom:92px;left:0;right:0;display:flex;gap:8px;padding:6px 16px;overflow-x:auto;direction:rtl;z-index:13}.sgchips::-webkit-scrollbar{height:0}.sgchip{white-space:nowrap;background:var(--surface2);border:1px solid var(--line);color:var(--coral);font-size:12.5px;font-weight:700;padding:8px 13px;border-radius:15px;flex:none;cursor:pointer}.typing{align-self:flex-end;display:flex;gap:5px;background:var(--surface);padding:14px 18px;border-radius:20px;border-bottom-left-radius:7px}.typing i{width:7px;height:7px;border-radius:50%;background:var(--muted);animation:tp 1s infinite}.typing i:nth-child(2){animation-delay:.2s}.typing i:nth-child(3){animation-delay:.4s}@keyframes tp{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}#s-chat .msg b{font-weight:800;color:#fff}.ebreak{margin-top:10px;display:flex;flex-direction:column;gap:8px}.er{display:flex;justify-content:space-between;font-size:14px;border-top:1px solid var(--line);padding-top:8px}.er b{color:var(--coral)}.linkbtn{margin-top:10px;background:var(--coral2);color:#fff;border:none;border-radius:12px;padding:9px 14px;font-family:inherit;font-weight:800;font-size:13.5px;cursor:pointer}.qa,.fab,.nv,.back,.btn,.sec a,.cta .b,.month,.linkbtn,.sgchip{cursor:pointer}#s-invest .bar{background:linear-gradient(90deg,#EC7C5A,#E2A93B,#37C98C)}#s-invest .knob{transition:left .35s ease}#s-invest .fill{transition:width .45s ease}#s-invest .rlabels span{cursor:pointer;padding:4px 7px}#s-invest .stp{width:27px;height:27px;border-radius:9px;background:var(--surface2);border:1px solid rgba(255,255,255,.14);color:var(--text);font-size:17px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-family:inherit;line-height:1;padding:0}#s-invest .cta .b svg{width:19px;height:19px;margin-left:8px}#s-invest #inv-growth{direction:ltr}#s-chat .btn.ok svg{width:18px;height:18px}
 
 .stage{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:34px 16px 20px;background:radial-gradient(1200px 600px at 50% -5%,#123049,#08151f 60%)}
-.hero{text-align:center;max-width:640px;margin-bottom:20px}
-.brand{display:inline-flex;align-items:center;gap:12px;font-size:34px;font-weight:900;color:#fff}
-.brand .spark{width:32px;height:32px;color:var(--coral)}
-.hero p{color:#9fb3c2;font-size:16px;margin-top:12px;line-height:1.75}
+.hero{text-align:center;max-width:720px;margin-bottom:6px}
+.brand{display:inline-flex;align-items:center;gap:12px;font-size:30px;font-weight:900;color:#fff}
+.brand .spark{width:30px;height:30px;color:var(--coral)}
+.brand .spark svg{animation:sparkpulse 3s ease-in-out infinite}
+@keyframes sparkpulse{0%,100%{filter:drop-shadow(0 0 5px rgba(236,124,90,.35))}50%{filter:drop-shadow(0 0 16px rgba(236,124,90,.9))}}
+.headline{margin-top:20px;font-size:38px;font-weight:900;color:#fff;line-height:1.45}
+.headline .grad{display:block;font-size:30px;background:linear-gradient(90deg,#F1A184,#EC7C5A 55%,#E2A93B);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{color:#9fb3c2;font-size:16.5px;margin-top:16px;line-height:1.85;max-width:620px;margin-inline:auto}
+.ctas{display:flex;gap:12px;justify-content:center;margin-top:26px;flex-wrap:wrap}
+.cta-primary{background:var(--coral2);color:#fff;font-weight:800;font-size:15.5px;padding:14px 30px;border-radius:15px;text-decoration:none;box-shadow:0 10px 28px rgba(236,124,90,.35);transition:transform .16s ease,box-shadow .16s ease}
+.cta-primary:hover{transform:translateY(-2px);box-shadow:0 16px 36px rgba(236,124,90,.5)}
+.cta-ghost{background:rgba(255,255,255,.06);border:1px solid var(--line);color:#cdd9e2;font-weight:800;font-size:15.5px;padding:14px 30px;border-radius:15px;text-decoration:none;transition:background .16s ease}
+.cta-ghost:hover{background:rgba(255,255,255,.12)}
+.brand,.headline,.hero p,.ctas{opacity:0;animation:heroup .7s cubic-bezier(.2,.7,.2,1) forwards}
+.headline{animation-delay:.12s}.hero p{animation-delay:.24s}.ctas{animation-delay:.36s}
+@keyframes heroup{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+/* ---------- demo composition: floating phone + animated halo + satellites ---------- */
+.demo-wrap{position:relative;display:flex;justify-content:center;width:100%;padding:30px 0 6px;scroll-margin-top:20px}
+.halo{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:0}
+.halo svg{width:min(880px,96vw);height:auto;overflow:visible}
+.ring-dash,.ring-slow{transform-box:view-box;transform-origin:50% 50%}
+.ring-dash{animation:spin 70s linear infinite}
+.ring-slow{animation:spin 110s linear infinite reverse}
+@keyframes spin{to{transform:rotate(360deg)}}
+.demo-wrap .device{position:relative;z-index:1;animation:floaty 7s ease-in-out infinite}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.sat{position:absolute;z-index:2;display:flex;align-items:center;gap:9px;background:rgba(15,34,49,.88);backdrop-filter:blur(6px);border:1px solid rgba(236,124,90,.35);color:#ECF2F6;font-size:13.5px;font-weight:800;padding:11px 17px;border-radius:16px;box-shadow:0 12px 32px rgba(0,0,0,.4)}
+.sat svg{width:17px;height:17px;color:var(--coral);flex:none}
+.sat.s1{top:14%;right:calc(50% + 252px);animation:bob 5s ease-in-out infinite}
+.sat.s2{top:33%;left:calc(50% + 252px);animation:bob 6s ease-in-out .8s infinite}
+.sat.s3{top:57%;right:calc(50% + 268px);animation:bob 5.5s ease-in-out .4s infinite}
+.sat.s4{top:76%;left:calc(50% + 258px);animation:bob 6.5s ease-in-out 1.2s infinite}
+@keyframes bob{0%,100%{transform:translateY(-7px)}50%{transform:translateY(9px)}}
+@media(max-width:1080px){.sat{display:none}}
+/* ---------- sadu weave divider ---------- */
+.sadu{height:14px;max-width:960px;margin:6px auto 30px;opacity:.8;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='14'%3E%3Cpath d='M0 13 7 3l7 10 7-10 7 10 7-10 7 10 7-10 7 10' fill='none' stroke='%23EC7C5A' stroke-width='1.6'/%3E%3Cpath d='M0 9 7 -1l7 10 7-10 7 10 7-10 7 10 7-10 7 10' fill='none' stroke='%23E2A93B' stroke-width='1' opacity='.65'/%3E%3C/svg%3E");background-repeat:repeat-x;background-position:center}
+/* ---------- commands under demo ---------- */
+.cmds{display:flex;gap:9px;justify-content:center;flex-wrap:wrap;margin-top:13px}
+.cmd{background:#0f2231;border:1px solid rgba(236,124,90,.3);color:var(--coral);font-size:13.5px;font-weight:700;padding:9px 15px;border-radius:12px}
 .chips{display:flex;gap:9px;justify-content:center;flex-wrap:wrap;margin-top:16px}
 .chip2{background:rgba(255,255,255,.06);border:1px solid var(--line);color:#cdd9e2;font-size:13px;font-weight:700;padding:7px 15px;border-radius:20px}
-.hint{margin-top:20px;color:#7E93A2;font-size:13.5px;text-align:center;max-width:430px;line-height:1.7}
+.hint{margin-top:22px;color:#7E93A2;font-size:13.5px;text-align:center;max-width:620px;line-height:1.7}
 .about{max-width:960px;margin:6px auto 0;padding:36px 20px 26px;width:100%}
 .about h2{color:#fff;font-size:22px;font-weight:900;margin:26px 0 14px;display:flex;align-items:center;gap:10px}
 .about h2 .b{width:5px;height:22px;border-radius:3px;background:var(--coral2)}
-.status-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(55,201,140,.12);color:var(--green);border:1px solid rgba(55,201,140,.3);font-weight:800;font-size:14px;padding:9px 16px;border-radius:20px}
-.ps{background:#0f2231;border:1px solid var(--line);border-radius:16px;padding:20px;font-size:15px;color:#c3d2dd;line-height:1.9}
-.ps b{color:var(--coral)}
+.psgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.pscard{background:#0f2231;border:1px solid var(--line);border-radius:16px;padding:20px}
+.pscard h3{font-size:15px;font-weight:900;margin-bottom:9px}
+.pscard.prob h3{color:var(--red)}
+.pscard.sol h3{color:var(--green)}
+.pscard p{font-size:14.5px;color:#c3d2dd;line-height:1.9}
+.pscard b{color:var(--coral)}
+.steps{display:flex;gap:12px;align-items:stretch;flex-wrap:wrap}
+.step{flex:1;min-width:230px;background:#0f2231;border:1px solid var(--line);border-radius:16px;padding:19px}
+.step .n{width:31px;height:31px;border-radius:10px;background:rgba(236,124,90,.15);color:var(--coral);font-weight:900;font-size:15px;display:flex;align-items:center;justify-content:center;margin-bottom:11px}
+.step h3{font-size:15.5px;font-weight:800;color:#fff;margin-bottom:8px}
+.step p{font-size:13.5px;color:#a9bcca;line-height:1.85}
+.step b{color:var(--coral)}
+.steps .arrow{align-self:center;color:var(--coral);font-size:24px;font-weight:900;animation:nudge 1.6s ease-in-out infinite}
+@keyframes nudge{0%,100%{transform:translateX(0);opacity:.5}50%{transform:translateX(-5px);opacity:1}}
+@media(max-width:820px){.steps .arrow{display:none}}
+.rv{opacity:0;transform:translateY(24px);transition:opacity .65s ease,transform .65s cubic-bezier(.2,.7,.2,1)}
+.rv.vis{opacity:1;transform:none}
+.grid .card:nth-child(2),.steps .step:nth-child(3){transition-delay:.08s}
+.grid .card:nth-child(3),.steps .step:nth-child(5){transition-delay:.16s}
+.grid .card:nth-child(4){transition-delay:.24s}
+.grid .card:nth-child(5){transition-delay:.32s}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
-.card{background:#0f2231;border:1px solid var(--line);border-radius:16px;padding:18px}
+.card{background:#0f2231;border:1px solid var(--line);border-radius:16px;padding:18px;transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
+.card:hover{transform:translateY(-4px);border-color:rgba(236,124,90,.45);box-shadow:0 16px 36px rgba(0,0,0,.35)}
 .card h3{font-size:16px;font-weight:800;color:#fff;margin-bottom:8px}
 .card p{font-size:14px;color:#a9bcca;line-height:1.7}
 .tags{display:flex;flex-wrap:wrap;gap:8px}
@@ -212,12 +267,17 @@ footer a{color:var(--coral);font-weight:700;text-decoration:none}
 @keyframes rise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
 #s-home .qa .ic,#s-home .fab,#s-chat .btn,.sgchip,#s-chat .send,#s-chat .mic,#s-chat .spk,#s-invest .cta .b,#s-invest .stp,#s-home .nv{transition:transform .12s ease}
 #s-home .qa:active .ic,#s-home .fab:active,#s-chat .btn:active,.sgchip:active,#s-chat .send:active,#s-chat .mic:active,#s-chat .spk:active,#s-invest .cta .b:active,#s-invest .stp:active,#s-home .nv:active{transform:scale(.94)}
-@media(prefers-reduced-motion:reduce){.page.active,#s-chat .msg,#s-chat .tcard,#s-chat .success,#s-chat .typing,#s-home .tx{animation:none}}
+@media(prefers-reduced-motion:reduce){.page.active,#s-chat .msg,#s-chat .tcard,#s-chat .success,#s-chat .typing,#s-home .tx{animation:none}
+.brand,.headline,.hero p,.ctas{animation:none;opacity:1}
+.demo-wrap .device,.sat,.ring-dash,.ring-slow,.steps .arrow,.brand .spark svg,#s-home .fab{animation:none}
+.rv{opacity:1;transform:none;transition:none}}
 html,body{overflow-x:hidden}
 /* ---------- mobile: full-bleed native-app layout (no mockup frame) ---------- */
 @media(max-width:520px){
 body{overflow:hidden;overscroll-behavior:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
-.hero,.hint,.about,footer{display:none}
+.hero,.hint,.about,footer,.halo,.sat{display:none}
+.demo-wrap{padding:0}
+.demo-wrap .device{animation:none}
 .stage{padding:0;min-height:0;height:100vh;height:100dvh;background:var(--bg)}
 .device{width:100%;max-width:none;margin:0;padding:0;border-radius:0;background:none;box-shadow:none}
 .screen{width:100%;height:100vh;height:100dvh;border-radius:0}
@@ -240,17 +300,27 @@ body{overflow:hidden;overscroll-behavior:none;touch-action:manipulation;-webkit-
 </style></head><body><div class='stage'>
 <div class='hero'>
   <div class='brand'><span class='spark'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3l1.8 4.7L18.5 9.5 13.8 11.3 12 16l-1.8-4.7L5.5 9.5l4.7-1.8L12 3Z'/><path d='M19 14l.9 2.3 2.3.9-2.3.9L19 20.4l-.9-2.3-2.3-.9 2.3-.9L19 14Z'/></svg></span>ثَروة</div>
-  <p>مساعد بنكي ذكي بالذكاء الاصطناعي التوليدي — حوّل، حلّل مصروفاتك، واستثمر بأوامر بسيطة بالمحادثة.</p>
-  <div class='chips'>
-    <span class='chip2'>تحويلات بالمحادثة</span>
-    <span class='chip2'>أوامر صوتية بالعربية</span>
-    <span class='chip2'>بطاقة تأكيد قبل التنفيذ</span>
-    <span class='chip2'>حماية ذكية من الاحتيال</span>
-    <span class='chip2'>زكاة وميزانيات بالمحادثة</span>
-    <span class='chip2'>استثمار مرتبط بهدفك</span>
-    <span class='chip2'>تحليل ذكي للمصروفات</span>
-  </div>
+  <h1 class='headline'>مصرفي خاص لكل عميل<span class='grad'>يسمعك، يفهمك، وينفّذ بأمان</span></h1>
+  <p>حوّل بصوتك، احسب زكاتك، اضبط ميزانياتك، وخطّط لهدفك الاستثماري — بمحادثة عربية طبيعية داخل تطبيقك البنكي، مع تأكيد بشري قبل أي عملية.</p>
+  <div class='ctas'><a class='cta-primary' href='#demo'>جرّب النموذج الحي</a><a class='cta-ghost' href='#how'>كيف يعمل؟</a></div>
 </div>
+<div class='demo-wrap' id='demo'>
+<div class='halo'><svg viewBox='0 0 900 900' fill='none'>
+<defs><radialGradient id='hg' cx='50%' cy='50%' r='50%'><stop offset='0%' stop-color='#EC7C5A' stop-opacity='.13'/><stop offset='60%' stop-color='#EC7C5A' stop-opacity='.05'/><stop offset='100%' stop-color='#EC7C5A' stop-opacity='0'/></radialGradient></defs>
+<circle cx='450' cy='450' r='300' fill='url(#hg)'/>
+<circle cx='450' cy='450' r='340' stroke='rgba(236,124,90,.16)' stroke-width='1.5'/>
+<g class='ring-dash'><circle cx='450' cy='450' r='408' stroke='rgba(226,169,59,.22)' stroke-width='1.5' stroke-dasharray='3 16'/></g>
+<g class='ring-slow'>
+<path transform='translate(450 42)' d='M0-14l3.4 9.4L13-1.2 3.4 2.2 0 12l-3.4-9.8L-13-1.2l9.6-3.4Z' fill='#EC7C5A' opacity='.85'/>
+<path transform='translate(858 450)' d='M0-10l2.6 7L10-.8 2.6 1.6 0 9l-2.6-7.4L-10-.8l7.4-2.6Z' fill='#E2A93B' opacity='.6'/>
+<path transform='translate(450 858)' d='M0-12l3 8.2L11.5-1 3 1.9 0 10.5l-3-8.6L-11.5-1l8.5-2.8Z' fill='#F1A184' opacity='.7'/>
+<path transform='translate(42 450)' d='M0-9l2.3 6.3L9-.7 2.3 1.5 0 8.2-2.3 1.5-9-.7l6.7-2Z' fill='#37C98C' opacity='.55'/>
+</g>
+</svg></div>
+<span class='sat s1'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><rect x='9' y='2' width='6' height='12' rx='3'/><path d='M5 11a7 7 0 0 0 14 0'/><path d='M12 18v3'/></svg>أوامر صوتية بالعربية</span>
+<span class='sat s2'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M12 22s8-3.6 8-10V5.5L12 2 4 5.5V12c0 6.4 8 10 8 10Z'/><path d='m9 12 2 2 4-4.5'/></svg>حماية قبل التنفيذ</span>
+<span class='sat s3'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><ellipse cx='12' cy='6' rx='7.5' ry='3'/><path d='M4.5 6v5c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3V6'/><path d='M4.5 11v5c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-5'/></svg>زكاة وميزانيات</span>
+<span class='sat s4'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><polyline points='22 7 13.5 15.5 8.5 10.5 2 17'/><polyline points='16 7 22 7 22 13'/></svg>استثمار مرتبط بهدفك</span>
 <div class='device'><div class='screen'><div class="page active" id="s-home"><div class="island"></div><div class="statusbar"><span class="time">9:41</span><span class="sbi"><svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1" fill="#fff"/><rect x="5" y="5.5" width="3" height="6.5" rx="1" fill="#fff"/><rect x="10" y="3" width="3" height="9" rx="1" fill="#fff"/><rect x="15" y="0" width="3" height="12" rx="1" fill="#fff"/></svg><svg width="17" height="13" viewBox="0 0 17 13" fill="#fff"><path d="M8.5 2.4c2.9 0 5.6 1.1 7.6 3l-1.3 1.4C13.1 5.2 10.9 4.3 8.5 4.3S3.9 5.2 2.2 6.8L.9 5.4C2.9 3.5 5.6 2.4 8.5 2.4Z"/><path d="M8.5 6.3c1.7 0 3.3.7 4.4 1.8l-1.4 1.4c-.8-.8-1.8-1.2-3-1.2s-2.2.4-3 1.2L4.1 8.1C5.2 7 6.8 6.3 8.5 6.3Z"/><circle cx="8.5" cy="11" r="1.5"/></svg><svg width="27" height="13" viewBox="0 0 27 13"><rect x="1" y="1.2" width="21.5" height="10.6" rx="3" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1.2"/><rect x="2.6" y="2.8" width="16" height="7.4" rx="1.6" fill="#fff"/><rect x="24" y="4.6" width="1.7" height="3.8" rx=".8" fill="#fff" fill-opacity=".55"/></svg></span></div>
 <div class="app">
   <header>
@@ -344,12 +414,15 @@ body{overflow:hidden;overscroll-behavior:none;touch-action:manipulation;-webkit-
   <div class="tracknote warn" id="inv-track"></div>
 </div>
 <div class="cta"><div class="b">ابدأ الخطة الآن<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></div></div>
-</div></div></div><div class='hint'>جرّب النموذج مباشرة: افتح شاشة «المساعد» من الشريط السفلي (أو زر «اسأل ثَروة»)، ثم اكتب أمراً طبيعياً مثل «حوّل ٥٠٠ لأحمد» — المساعد يفهمه بالذكاء الاصطناعي وينفّذه فعلياً.</div></div>
+</div></div></div></div><div class='hint'>جرّب مباشرة من الجوال أعلاه — افتح شاشة «المساعد» واكتب أو اضغط المايك وقل:
+<div class='cmds'><span class='cmd'>حوّل ٥٠٠ لأحمد</span><span class='cmd'>احسب زكاتي</span><span class='cmd'>أبي أجمع ٣٠ ألف لسيارة خلال سنة</span><span class='cmd'>قيّم وضعي المالي</span></div></div></div>
 <section class='about'>
-  <div style='margin-bottom:8px'><span class='status-badge'><svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='M20 6 9 17l-5-5'/></svg>نموذج أوّلي يعمل — إنجاز ~30% من المشروع</span></div>
-
+  <div class='sadu'></div>
   <h2><span class='b'></span>المشكلة والحل</h2>
-  <div class='ps'>تطبيقات بنكية معقّدة، وضعف في الوعي المالي، واستشارة استثمارية شبه حكر على الأثرياء. <b>الحل:</b> مساعد «ثَروة» التوليدي داخل التطبيق البنكي — يحوّل اللغة الطبيعية إلى عمليات بنكية فعلية عبر <b>Function-Calling</b>، فيبسّط الخدمات ويعزّز الشمول المالي.</div>
+  <div class='psgrid'>
+    <div class='pscard prob'><h3>المشكلة</h3><p>تطبيقات بنكية معقّدة، وعي مالي ضعيف، واستشارة مالية واستثمارية شبه حكر على الأثرياء — بينما بقية العملاء يتركون بدون توجيه.</p></div>
+    <div class='pscard sol'><h3>الحل</h3><p>«ثَروة» — مصرفي خاص لكل عميل داخل التطبيق البنكي: يحوّل اللغة الطبيعية، كتابةً وصوتاً، إلى عمليات واستشارات بنكية فعلية عبر <b>Function-Calling</b> — فيبسّط الخدمات ويحقق شمولاً مالياً حقيقياً.</p></div>
+  </div>
 
   <h2><span class='b'></span>المزايا الأساسية</h2>
   <div class='grid'>
@@ -364,8 +437,14 @@ body{overflow:hidden;overscroll-behavior:none;touch-action:manipulation;-webkit-
     <div class='card'><h3>شمول مالي للجميع</h3><p>استشارة مالية ذكية متاحة لكل عميل داخل التطبيق — لا للأثرياء فقط.</p></div>
   </div>
 
-  <h2><span class='b'></span>كيف يعمل (البنية التقنية)</h2>
-  <div class='ps'>واجهة التطبيق ترسل رسالة العميل إلى دالة خادمية (Serverless) على Vercel، تستدعي نموذج <b>Google Gemini</b> مع أدوات (Tools) بنكية. يفهم النموذج الأمر بالعربية ويستدعي الأداة المناسبة (تنفيذ تحويل / فتح شاشة) — وهذا هو جوهر <b>Function-Calling</b>: تحويل اللغة الطبيعية إلى عملية بنكية فعلية. مفتاح الـ API محفوظ في الخادم ولا يظهر في الموقع.</div>
+  <h2 id='how'><span class='b'></span>كيف يعمل (البنية التقنية)</h2>
+  <div class='steps'>
+    <div class='step'><span class='n'>1</span><h3>العميل يطلب</h3><p>كتابةً أو صوتاً بالعربية: «أبي أجمع ٣٠ ألف لسيارة خلال سنة» — واجهة التطبيق ترسل الطلب لدالة خادمية على Vercel.</p></div>
+    <div class='arrow'>←</div>
+    <div class='step'><span class='n'>2</span><h3>الذكاء يفهم ويقترح</h3><p>نموذج <b>Google Gemini</b> يستدعي الأداة البنكية المناسبة من ٧ أدوات Function-Calling، والحسابات المالية تتم بكود حتمي على الخادم.</p></div>
+    <div class='arrow'>←</div>
+    <div class='step'><span class='n'>3</span><h3>العميل يؤكد والنظام ينفّذ</h3><p>بطاقة تأكيد بشرية قبل أي عملية، ثم تنفيذ حتمي في الخادم — <b>الذكاء يقترح ولا يملك التنفيذ</b>، ومفتاح الـ API لا يصل للمتصفح أبداً.</p></div>
+  </div>
   <div class='tags' style='margin-top:14px'>
     <span class='tg'>Google Gemini (LLM) + Function-Calling</span>
     <span class='tg'>Vercel Serverless</span>
@@ -386,4 +465,17 @@ body{overflow:hidden;overscroll-behavior:none;touch-action:manipulation;-webkit-
   فريق <b style='color:#cdd9e2'>ByteStorm</b> · هاكاثون امد 2026 — أكاديمية طويق<br>
   مسار: الذكاء الاصطناعي التوليدي للتقنية المالية · <a href='https://github.com/i3z1/ByteStorm-Tharwa'>الكود على GitHub</a>
 </footer>
+<script>
+(function () {
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (!('IntersectionObserver' in window)) return;
+  var els = document.querySelectorAll('.about .card,.about .step,.about .pscard,.about .member,.about h2,.about .tags');
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) {
+      if (en.isIntersecting) { en.target.classList.add('vis'); io.unobserve(en.target); }
+    });
+  }, { threshold: 0.12 });
+  els.forEach(function (e) { e.classList.add('rv'); io.observe(e); });
+})();
+</script>
 <script src='app.js'></script></body></html>
