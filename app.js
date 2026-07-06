@@ -39,7 +39,10 @@
 
   // ---------------- NAVIGATION ----------------
   function show(id) {
-    qa(".page").forEach(function (p) { p.classList.toggle("active", p.id === id); });
+    qa(".page").forEach(function (p) {
+      p.classList.toggle("active", p.id === id);
+      if (p.id === id) p.scrollTop = 0;
+    });
     window.scrollTo({ top: 0, behavior: "smooth" });
     if (id === "s-chat") { setTimeout(function () { var c = q("#cmd"); if (c) c.focus(); }, 60); }
   }
@@ -116,6 +119,19 @@
   // ---------------- CHAT UI ----------------
   var log;
   function scrollChat() { if (log) log.scrollTop = log.scrollHeight; }
+
+  // keyboard-aware layout: expose keyboard height as --kb so the input bar
+  // and chat stay visible above the on-screen keyboard (iOS Safari mainly)
+  if (window.visualViewport) {
+    var vvFix = function () {
+      var kb = Math.max(0, window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop);
+      document.documentElement.style.setProperty("--kb", Math.round(kb) + "px");
+      if (kb > 0) scrollChat();
+    };
+    window.visualViewport.addEventListener("resize", vvFix);
+    window.visualViewport.addEventListener("scroll", vvFix);
+    vvFix();
+  }
   function bubble(cls, html) {
     var d = document.createElement("div"); d.className = "msg " + cls; d.innerHTML = html;
     log.appendChild(d); scrollChat(); return d;

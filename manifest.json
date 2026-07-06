@@ -1,0 +1,20 @@
+{
+  "name": "ثَروة — مساعد بنكي ذكي",
+  "short_name": "ثَروة",
+  "description": "مساعد بنكي ذكي بالذكاء الاصطناعي التوليدي — حوّل، حلّل مصروفاتك، واستثمر بالمحادثة.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0B1E2C",
+  "theme_color": "#0B1E2C",
+  "icons": [
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
