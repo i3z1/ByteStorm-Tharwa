@@ -48,7 +48,9 @@
       if (p.id === id) p.scrollTop = 0;
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
-    if (id === "s-chat") { setTimeout(function () { var c = q("#cmd"); if (c) c.focus(); }, 60); }
+    // autofocus only on desktop — on phones it pops the keyboard over the greeting
+    var fine = window.matchMedia && matchMedia("(hover: hover) and (pointer: fine)").matches;
+    if (id === "s-chat" && fine) { setTimeout(function () { var c = q("#cmd"); if (c) c.focus(); }, 60); }
   }
   window.__tharwaShow = show;
 
