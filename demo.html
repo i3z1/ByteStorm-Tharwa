@@ -372,8 +372,8 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     await typeIn('حوّل ٥٠٠ لأحمد');
     await pressSend(); userMsg('حوّل ٥٠٠ لأحمد');
     await think(1400);
-    botMsg('تفضّل، راجع تفاصيل التحويل واضغط <b>تأكيد</b>:');
-    await sleep(900);
+    botMsg('فهمت — قصدك <b>أحمد العتيبي (مصرف الإنماء)</b>، الوحيد باسم أحمد في مستفيديك. راجع التفاصيل واضغط <b>تأكيد</b>:');
+    await sleep(1100);
     var card = confirmCard('500.00', false);
     await sleep(3200);
     var ok = card.querySelector('.btn.ok');
@@ -402,7 +402,7 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     await typeIn('حوّل ٦٠٠٠ لأحمد');
     await pressSend(); userMsg('حوّل ٦٠٠٠ لأحمد');
     await think(1200);
-    botMsg('جهّزت البطاقة — <b>لاحظ تنبيه الحماية</b> لأن المبلغ أعلى من المعتاد:');
+    botMsg('جهّزت بطاقة التحويل لـ<b>أحمد العتيبي</b> — ولاحظ <b>تنبيه الحماية</b> لأن المبلغ أعلى من المعتاد:');
     await sleep(800);
     confirmCard('6,000.00', true);
     await sleep(4600);
