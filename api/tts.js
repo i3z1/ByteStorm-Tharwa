@@ -31,9 +31,9 @@ async function cloudTTS(text, key) {
   let lastErr = null;
   for (const name of voices) {
     try {
-      const r = await fetch("https://texttospeech.googleapis.com/v1/text:synthesize", {
+      const r = await fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key=" + encodeURIComponent(key), {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           input: { text },
           voice: { languageCode: "ar-XA", name },
