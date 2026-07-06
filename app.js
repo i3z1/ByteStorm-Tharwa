@@ -14,7 +14,12 @@
       { name: "سارة القحطاني", bank: "مصرف الراجحي", iban: "SA03 8000 0000 6080 1016 7519" },
       { name: "محمد الزهراني", bank: "البنك الأهلي SNB", iban: "SA71 1000 0011 2233 4455 6677" }
     ],
-    invest: { monthly: 500, risk: "متوسط" }
+    invest: { monthly: 500, risk: "متوسط" },
+    txns: [
+      { name: "مطعم النخيل", cat: "مطاعم", amount: 85, dir: "out", when: "اليوم 1:24 م" },
+      { name: "سوبرماركت العثيم", cat: "تسوّق", amount: 243.5, dir: "out", when: "أمس 6:10 م" },
+      { name: "راتب — شركة", cat: "دخل", amount: 12000, dir: "in", when: "27 يونيو" }
+    ]
   };
   var history = []; // {role:'user'|'assistant', text}
 
@@ -23,6 +28,7 @@
   var ICON_ERR = '<svg viewBox="0 0 24 24" fill="none" stroke="#F0796B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>';
   var ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
   var ICON_USERPLUS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></svg>';
+  var ICON_SHIELD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-3.6 8-10V5.5L12 2 4 5.5V12c0 6.4 8 10 8 10Z"/><path d="M12 8v4"/><path d="M12 15.5h.01"/></svg>';
 
   // ---------------- HELPERS ----------------
   function fmt(n) { return Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
@@ -88,6 +94,25 @@
     if (cta && cta.dataset.on) cta.innerHTML = ICON_CHECK + "الخطة مفعّلة — " + fmt0(monthly) + " ر.س شهرياً";
   }
 
+  // ---------------- VOICE (Arabic speech-to-text + spoken replies) ----------------
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var voiceMode = false;   // last command came from the mic → speak the reply back
+  var recognizing = false;
+  var rec = null;
+
+  function speak(text) {
+    if (!voiceMode || !window.speechSynthesis) return;
+    try {
+      var u = new SpeechSynthesisUtterance(String(text).replace(/\*\*/g, ""));
+      u.lang = "ar-SA";
+      u.rate = 1.04;
+      var v = (speechSynthesis.getVoices() || []).filter(function (x) { return /^ar/i.test(x.lang); })[0];
+      if (v) u.voice = v;
+      speechSynthesis.cancel();
+      speechSynthesis.speak(u);
+    } catch (e) { /* voice is best-effort */ }
+  }
+
   // ---------------- CHAT UI ----------------
   var log;
   function scrollChat() { if (log) log.scrollTop = log.scrollHeight; }
@@ -126,6 +151,7 @@
       + (a.iban ? cardRow("الآيبان", '<span class="v" style="direction:ltr;font-size:12.5px;letter-spacing:.3px">' + esc(a.iban) + '</span>') : "")
       + cardRow("من حساب", '<span class="v">' + esc(a.account || state.account) + '</span>')
       + '<div class="r big"><span class="k">المبلغ</span><span class="v">' + fmt(a.amount) + '<span class="c">ر.س</span></span></div>'
+      + (a.warn ? '<div class="warnrow">' + ICON_SHIELD + '<span>' + esc(a.warn) + '</span></div>' : "")
       + '<div class="confirm"><button class="btn ok">' + ICON_CHECK + 'تأكيد التحويل</button><button class="btn no">إلغاء</button></div>';
     log.appendChild(card); scrollChat();
 
@@ -148,7 +174,7 @@
         if (data.state) state = data.state;
         var ok = (data.actions || []).some(function (x) { return x.type === "transfer" && x.ok; });
         settle(ok ? "تم التنفيذ" : "فشل", ok ? "var(--green)" : "#F0796B");
-        if (data.reply) history.push({ role: "assistant", text: data.reply });
+        if (data.reply) { history.push({ role: "assistant", text: data.reply }); speak(data.reply); }
         applyActions(data.actions);
         busy = false;
       }).catch(function () {
@@ -228,7 +254,7 @@
       }
       var data = res.data;
       if (data.state) state = data.state;
-      if (data.reply) { botMsg(rich(data.reply)); history.push({ role: "assistant", text: data.reply }); }
+      if (data.reply) { botMsg(rich(data.reply)); history.push({ role: "assistant", text: data.reply }); speak(data.reply); }
       applyActions(data.actions);
       busy = false;
     }).catch(function () {
@@ -254,18 +280,62 @@
     renderHome();
 
     // greeting
-    botMsg("أهلاً بك، أنا <b>ثَروة</b> — مساعدك البنكي الذكي. أنفّذ تحويلاتك، أضيف مستفيدين جدد، أحلّل مصروفاتك، وأجهّز لك خطط استثمار. اكتب طلبك بلغتك الطبيعية، أو جرّب أحد الاقتراحات بالأسفل.");
+    botMsg("أهلاً بك، أنا <b>ثَروة</b> — مساعدك البنكي الذكي. أنفّذ تحويلاتك، أضيف مستفيدين جدد، أحلّل مصروفاتك، وأجهّز لك خطط استثمار. اكتب طلبك بلغتك الطبيعية، أو اضغط زر <b>المايك</b> وتكلّم — وأرد عليك صوتياً.");
 
     var chips = q("#chips");
     if (chips) CHIPS.forEach(function (cText) {
       var b = document.createElement("div"); b.className = "sgchip"; b.textContent = cText;
-      b.onclick = function () { handle(cText); };
+      b.onclick = function () { voiceMode = false; handle(cText); };
       chips.appendChild(b);
     });
 
-    var send = q("#send"); if (send) send.onclick = function () { handle(q("#cmd").value); };
-    var cmd = q("#cmd"); if (cmd) cmd.addEventListener("keydown", function (e) { if (e.key === "Enter") handle(cmd.value); });
-    var mic = q("#mic"); if (mic) mic.onclick = function () { q("#cmd").value = "حوّل 500 لأحمد"; q("#cmd").focus(); };
+    var send = q("#send"); if (send) send.onclick = function () { voiceMode = false; handle(q("#cmd").value); };
+    var cmd = q("#cmd"); if (cmd) cmd.addEventListener("keydown", function (e) { if (e.key === "Enter") { voiceMode = false; handle(cmd.value); } });
+
+    // mic: real Arabic speech recognition (Web Speech API); fallback fills a sample command
+    var mic = q("#mic");
+    if (mic) {
+      if (SR) {
+        var PH = cmd ? cmd.placeholder : "";
+        rec = new SR();
+        rec.lang = "ar-SA";
+        rec.interimResults = true;
+        rec.maxAlternatives = 1;
+        rec.onresult = function (e) {
+          var txt = "", fin = false;
+          for (var i = 0; i < e.results.length; i++) {
+            txt += e.results[i][0].transcript;
+            if (e.results[i].isFinal) fin = true;
+          }
+          if (cmd) cmd.value = txt;
+          if (fin && txt.trim()) {
+            try { rec.stop(); } catch (err) {}
+            voiceMode = true;
+            handle(txt);
+          }
+        };
+        rec.onend = function () {
+          recognizing = false;
+          mic.classList.remove("rec");
+          if (cmd) cmd.placeholder = PH;
+        };
+        rec.onerror = function () {
+          recognizing = false;
+          mic.classList.remove("rec");
+          if (cmd) cmd.placeholder = PH;
+        };
+        mic.onclick = function () {
+          if (recognizing) { try { rec.stop(); } catch (err) {} return; }
+          if (window.speechSynthesis) speechSynthesis.cancel();
+          recognizing = true;
+          mic.classList.add("rec");
+          if (cmd) { cmd.value = ""; cmd.placeholder = "أسمعك… تكلّم الآن"; }
+          try { rec.start(); } catch (err) { recognizing = false; mic.classList.remove("rec"); }
+        };
+      } else {
+        mic.onclick = function () { if (cmd) { cmd.value = "حوّل 500 لأحمد"; cmd.focus(); } };
+      }
+    }
     var cb = q("#chatback"); if (cb) cb.onclick = function () { show("s-home"); };
 
     // home wiring

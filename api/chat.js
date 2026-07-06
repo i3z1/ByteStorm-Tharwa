@@ -27,6 +27,12 @@ const DEFAULT_BENEFICIARIES = [
   { name: "محمد الزهراني", bank: "البنك الأهلي SNB", iban: "SA71 1000 0011 2233 4455 6677" }
 ];
 
+const DEFAULT_TXNS = [
+  { name: "مطعم النخيل", cat: "مطاعم", amount: 85, dir: "out", when: "اليوم 1:24 م" },
+  { name: "سوبرماركت العثيم", cat: "تسوّق", amount: 243.5, dir: "out", when: "أمس 6:10 م" },
+  { name: "راتب — شركة", cat: "دخل", amount: 12000, dir: "in", when: "27 يونيو" }
+];
+
 function normAr(t) { return String(t || "").replace(/[ً-ْـ]/g, "").trim(); }
 function findBen(list, name) {
   const n = normAr(name);
@@ -51,6 +57,7 @@ const SYSTEM = (s) => `أنت «ثَروة»، مساعد بنكي ذكي داخ
 بيانات العميل الحالية:
 - الرصيد: ${s.balance} ر.س في ${s.account}
 - مصروفات الشهر حسب الفئة: ${Object.entries(s.expenses).map(([k, v]) => k + ": " + v + " ر.س").join(" ، ")}
+- آخر العمليات (الأحدث أولاً): ${s.txns.map((t) => `${t.name} — ${t.amount} ر.س ${t.dir === "in" ? "(دخل)" : "(صرف · " + t.cat + ")"} — ${t.when}`).join(" ، ") || "لا يوجد"}
 - المستفيدون المسجّلون: ${s.beneficiaries.map((b) => `${b.name} (${b.bank})`).join(" ، ") || "لا يوجد"}
 - خطة الاستثمار الحالية: ${s.invest.monthly} ر.س شهرياً — مستوى المخاطرة: ${s.invest.risk}
 
@@ -136,8 +143,12 @@ function doPropose(args, s, actions) {
   const b = findBen(s.beneficiaries, args.recipient);
   if (!b) return { ok: false, note: `«${args.recipient}» غير مسجّل في قائمة المستفيدين. اقترح على العميل إضافته كمستفيد جديد أولاً.` };
   if (amount > s.balance) return { ok: false, note: `الرصيد غير كافٍ (الرصيد الحالي ${s.balance} ر.س). أخبر العميل بلطف.` };
-  actions.push({ type: "confirm", amount, recipient: b.name, bank: b.bank, iban: b.iban, account: s.account });
-  return { ok: true, note: "تم عرض بطاقة التأكيد للعميل. اطلب منه مراجعة التفاصيل والضغط على زر التأكيد في البطاقة." };
+  // fraud guard: flag amounts far above the customer's usual pattern
+  const warn = (amount >= 5000 || amount > s.balance * 0.4)
+    ? "هذا المبلغ أعلى من نمط تحويلاتك المعتاد — تأكد من صحة المستفيد قبل التأكيد."
+    : "";
+  actions.push({ type: "confirm", amount, recipient: b.name, bank: b.bank, iban: b.iban, account: s.account, warn });
+  return { ok: true, note: "تم عرض بطاقة التأكيد للعميل. اطلب منه مراجعة التفاصيل والضغط على زر التأكيد في البطاقة." + (warn ? " ظهر في البطاقة تنبيه حماية لأن المبلغ أعلى من المعتاد — نبّه العميل بلطف أن يتأكد من المستفيد." : "") };
 }
 
 function transfer(s, amount, recipientName, actions) {
@@ -148,6 +159,8 @@ function transfer(s, amount, recipientName, actions) {
   }
   s.balance = Math.round((s.balance - amount) * 100) / 100;
   s.expenses["تحويلات"] = (s.expenses["تحويلات"] || 0) + amount;
+  s.txns.unshift({ name: "تحويل إلى " + recipientName, cat: "تحويلات", amount, dir: "out", when: "الآن" });
+  if (s.txns.length > 15) s.txns.length = 15;
   actions.push({ type: "transfer", ok: true, amount, recipient: recipientName });
   return { ok: true, note: `تم تنفيذ التحويل بنجاح إلى ${recipientName}. الرصيد الجديد ${s.balance} ر.س.` };
 }
@@ -219,6 +232,15 @@ export default async function handler(req, res) {
           iban: String((b && b.iban) || "").slice(0, 40)
         })).filter((b) => b.name)
       : DEFAULT_BENEFICIARIES.map((b) => Object.assign({}, b)),
+    txns: Array.isArray(inState.txns) && inState.txns.length
+      ? inState.txns.slice(0, 15).map((t) => ({
+          name: String((t && t.name) || "").slice(0, 60),
+          cat: String((t && t.cat) || "أخرى").slice(0, 20),
+          amount: Number(t && t.amount) || 0,
+          dir: t && t.dir === "in" ? "in" : "out",
+          when: String((t && t.when) || "").slice(0, 30)
+        })).filter((t) => t.name && t.amount > 0)
+      : DEFAULT_TXNS.map((t) => Object.assign({}, t)),
     invest: {
       monthly: (inState.invest && Number(inState.invest.monthly) > 0) ? Number(inState.invest.monthly) : 500,
       risk: (inState.invest && RISKS[normAr(inState.invest.risk)] !== undefined) ? normAr(inState.invest.risk) : "متوسط"
