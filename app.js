@@ -230,18 +230,6 @@
       speechSynthesis.speak(u);
     } catch (e) {}
   }
-  // speak only the first sentence or two — shorter audio generates much faster,
-  // and the full text is already on screen
-  function speakable(t) {
-    var chunks = t.match(/[^.!؟?؛]+[.!؟?؛]?/g) || [t];
-    var out = "";
-    for (var i = 0; i < chunks.length; i++) {
-      if (out && (out + chunks[i]).length > 80) break;
-      out += chunks[i];
-      if (out.length >= 40) break;
-    }
-    return (out.trim() || t.slice(0, 80));
-  }
   function warmTts() {
     if (!ttsOn) return;
     try { fetch("/api/tts").catch(function () {}); } catch (e) {}
@@ -327,39 +315,18 @@
     if (!ttsOn || recognizing) { go(); return; }
     var full = String(text).replace(/\*\*/g, "").trim().slice(0, 300);
     if (!full) { go(); return; }
-    // part 1 starts fast; the rest is generated in the background and chains right after
-    var part1 = speakable(full);
-    var rest = full.slice(part1.length).trim();
     stopSpeak();
     var myGen = ttsGen;
-    var guard = setTimeout(go, 6500);
+    var guard = setTimeout(go, 8000); // never hold the text hostage
     function ready() { clearTimeout(guard); go(); }
     var fine = window.matchMedia && matchMedia("(hover: hover) and (pointer: fine)").matches;
     if (!fine) {
-      // phones: persistent unlocked <audio>; the remainder plays on 'ended'
-      var restData = null, p1ended = false;
-      if (rest) {
-        fetch("/api/tts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: rest })
-        }).then(function (r) { return r.json(); }).then(function (d) {
-          restData = d;
-          if (p1ended && myGen === ttsGen && ttsOn && d && d.a) playEl(d, rest, null);
-        }).catch(function () {});
-        getEl().onended = function () {
-          getEl().onended = null;
-          p1ended = true;
-          if (myGen !== ttsGen || !ttsOn) return;
-          if (restData && restData.a) playEl(restData, rest, null);
-        };
-      }
-      postSpeak(part1, myGen, ready);
+      // phones: one full clip via the persistent unlocked <audio>
+      postSpeak(full, myGen, ready);
       return;
     }
-    streamSpeak(part1, ready).then(function () {
-      if (rest && myGen === ttsGen && ttsOn) return streamSpeak(rest, null);
-    }).catch(function () {
+    // desktop: one full generation, streamed — playback starts on the first chunk
+    streamSpeak(full, ready).catch(function () {
       if (myGen !== ttsGen || !ttsOn) { ready(); return; }
       postSpeak(full, myGen, ready);
     });
