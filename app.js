@@ -275,10 +275,42 @@
     card.className = "tcard";
     card.innerHTML =
       '<div class="h"><span class="ti">' + ICON_COINS + '</span>حاسبة الزكاة<span class="badge">2.5%</span></div>'
-      + cardRow("الوعاء — رصيدك الحالي", '<span class="v">' + fmt(a.base) + '</span>')
+      + cardRow("رصيدك الحالي", '<span class="v">' + fmt(a.base) + '</span>')
       + '<div class="r big"><span class="k">زكاتك التقديرية</span><span class="v">' + fmt(a.amount) + '<span class="c">ر.س</span></span></div>'
       + '<div class="r" style="color:var(--muted);font-size:12.5px">تقدير توعوي — يفترض حولان الحول وبلوغ النصاب</div>';
     log.appendChild(card); scrollChat();
+  }
+
+  // ---------------- RECEIPT CARD (shareable) ----------------
+  var ICON_RECEIPT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2.5-1.5L9 22l2.5-1.5L14 22l2.5-1.5L19 22l1-.5V2l-1 .5L16.5 2 14 3.5 11.5 2 9 3.5 6.5 2 4 2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>';
+  var ICON_SHARE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4"/><path d="m15.4 6.5-6.8 4"/></svg>';
+  function renderReceiptCard(a) {
+    var card = document.createElement("div");
+    card.className = "tcard";
+    var dt = new Date(a.ts || Date.now());
+    var when = dt.toLocaleDateString("ar-SA-u-ca-gregory") + " · " + dt.toLocaleTimeString("ar-SA-u-ca-gregory", { hour: "2-digit", minute: "2-digit" });
+    card.innerHTML =
+      '<div class="h"><span class="ti">' + ICON_RECEIPT + '</span>إيصال تحويل<span class="badge">ناجح</span></div>'
+      + cardRow("المستفيد", '<span class="v">' + esc(a.recipient) + '</span>')
+      + (a.bank ? cardRow("البنك", '<span class="v">' + esc(a.bank) + '</span>') : "")
+      + (a.iban ? cardRow("الآيبان", '<span class="v" style="direction:ltr;font-size:12.5px;letter-spacing:.3px">' + esc(a.iban) + '</span>') : "")
+      + cardRow("الرقم المرجعي", '<span class="v" style="direction:ltr">' + esc(a.ref || "") + '</span>')
+      + cardRow("التاريخ", '<span class="v">' + esc(when) + '</span>')
+      + '<div class="r big"><span class="k">المبلغ</span><span class="v">' + fmt(a.amount) + '<span class="c">ر.س</span></span></div>'
+      + '<div class="confirm"><button class="btn share">' + ICON_SHARE + 'مشاركة الإيصال</button></div>';
+    log.appendChild(card); scrollChat();
+    var sb = q(".btn.share", card);
+    sb.onclick = function () {
+      var text = "إيصال تحويل — ثَروة\nالمبلغ: " + fmt(a.amount) + " ر.س\nالمستفيد: " + a.recipient
+        + (a.bank ? " — " + a.bank : "") + (a.iban ? "\nالآيبان: " + a.iban : "")
+        + "\nالرقم المرجعي: " + (a.ref || "") + "\nالتاريخ: " + when + "\nالحالة: ناجح";
+      if (navigator.share) {
+        navigator.share({ title: "إيصال تحويل — ثَروة", text: text }).catch(function () {});
+      } else if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text);
+        sb.innerHTML = ICON_CHECK + "تم نسخ الإيصال";
+      }
+    };
   }
 
   // ---------------- APPLY ACTIONS FROM SERVER ----------------
@@ -304,6 +336,8 @@
         setTimeout(function () { show("s-spend"); }, 1100);
       } else if (a.type === "zakat") {
         renderZakatCard(a);
+      } else if (a.type === "receipt") {
+        renderReceiptCard(a);
       } else if (a.type === "open" && a.screen) {
         var map = { home: "s-home", spend: "s-spend", invest: "s-invest", chat: "s-chat" };
         var target = map[a.screen];
@@ -352,6 +386,7 @@
   // ---------------- SUGGESTION CHIPS ----------------
   var CHIPS = [
     "حوّل 500 لأحمد",
+    "أبي إيصال آخر تحويل",
     "أبي أجمع 30 ألف لسيارة خلال سنة",
     "احسب زكاتي",
     "حط ميزانية 1500 للمطاعم",

@@ -88,7 +88,8 @@ const SYSTEM = (s) => {
 4) set_investment_plan(monthly, risk, goal_name, goal_amount, goal_months): عند طلب خطة استثمار أو هدف ادخار (مثل: «أبي أجمع 30 ألف لسيارة خلال سنة» → goal_name سيارة، goal_amount 30000، goal_months 12). إذا لم يحدد العميل مبلغاً شهرياً لا ترسل monthly — سيُحسب تلقائياً القسط الذي يحقق الهدف بعائد مركّب. المستويات: متحفظ (~5.1%)، متوسط (~8.4%)، جريء (~12.3%) — إن لم يحدد استخدم متوسط. ستُفتح شاشة الاستثمار تلقائياً.
 5) set_budget(category, amount): استدعها فوراً عند أي طلب فيه «ميزانية» أو «حد صرف» أو «سقف» لفئة — أمثلة: «حط ميزانية 1500 للمطاعم»، «أبي ميزانية للتسوق 1000»، «لا أبي أصرف أكثر من 800 على الفواتير». الفئات: مطاعم، تسوّق، فواتير، تحويلات، أخرى. تظهر بشريط تقدم في شاشة التحليل.
 6) calculate_zakat(): عند سؤال العميل عن زكاته — تحسب 2.5% من رصيده وتعرض بطاقة. وضّح دائماً أنه تقدير توعوي.
-7) open_screen(screen): لفتح شاشة home أو spend أو invest عند الطلب.
+7) show_receipt(): عند طلب إيصال أو وصل آخر تحويل («أبي إيصال آخر عملية») — تعرض بطاقة إيصال قابلة للمشاركة.
+8) open_screen(screen): لفتح شاشة home أو spend أو invest عند الطلب.
 
 قواعد: أجب عن أسئلة الرصيد والمصروفات والدخل والمستفيدين مباشرة من البيانات أعلاه. إذا طلب العميل تقييم وضعه المالي فحلّل من الأرقام (نسبة الادخار من الدخل، أعلى فئات الصرف، تجاوز الميزانيات) وقدّم نصيحتين أو ثلاثاً عملية مختصرة. إذا اقترحت خطة استثمار تأكد أن القسط ضمن الفائض الشهري وإلا نبّه العميل بلطف. التزم بالنطاق البنكي فقط، وإذا سُئلت خارجه اعتذر بلطف ووجّه العميل لما تقدر تساعده فيه.`;
 };
@@ -165,6 +166,11 @@ const TOOLS = [{
       parameters: { type: "OBJECT", properties: {} }
     },
     {
+      name: "show_receipt",
+      description: "يعرض للعميل إيصال آخر تحويل نفّذه (بطاقة قابلة للمشاركة). استدعه عند طلب: أبي إيصال آخر عملية، إيصال التحويل، وصل التحويل.",
+      parameters: { type: "OBJECT", properties: {} }
+    },
+    {
       name: "open_screen",
       description: "يفتح شاشة داخل التطبيق: تحليل المصروفات (spend) أو خطة الاستثمار (invest) أو الرئيسية (home).",
       parameters: {
@@ -192,7 +198,7 @@ function doPropose(args, s, actions) {
   return { ok: true, note: `تم عرض بطاقة التأكيد للعميل — المستفيد المطابق: ${b.name} (${b.bank}). في ردك اذكر اسم المستفيد الكامل وبنكه حتى يتأكد العميل أنه الشخص الصحيح، واطلب منه مراجعة التفاصيل والضغط على زر التأكيد.` + (warn ? " ظهر في البطاقة تنبيه حماية لأن المبلغ أعلى من المعتاد — نبّه العميل بلطف أن يتأكد من المستفيد." : "") };
 }
 
-function transfer(s, amount, recipientName, actions) {
+function transfer(s, amount, recipientName, actions, ben) {
   if (!(amount > 0)) return { ok: false, note: "المبلغ غير صالح." };
   if (amount > s.balance) {
     actions.push({ type: "transfer", ok: false, amount, recipient: recipientName, message: "الرصيد غير كافٍ لإتمام التحويل." });
@@ -203,12 +209,31 @@ function transfer(s, amount, recipientName, actions) {
   s.txns.unshift({ name: "تحويل إلى " + recipientName, cat: "تحويلات", amount, dir: "out", when: "الآن" });
   if (s.txns.length > 15) s.txns.length = 15;
   actions.push({ type: "transfer", ok: true, amount, recipient: recipientName });
-  return { ok: true, note: `تم تنفيذ التحويل بنجاح إلى ${recipientName}. الرصيد الجديد ${s.balance} ر.س.` };
+  actions.push(receiptAction(amount, recipientName, ben));
+  return { ok: true, note: `تم تنفيذ التحويل بنجاح إلى ${recipientName}. الرصيد الجديد ${s.balance} ر.س. ظهر للعميل إيصال التحويل ويقدر يشاركه من زر المشاركة.` };
+}
+
+function receiptAction(amount, recipient, ben) {
+  return {
+    type: "receipt", amount, recipient,
+    bank: ben ? ben.bank : "", iban: ben ? ben.iban : "",
+    ref: "THW-" + Date.now().toString(36).toUpperCase().slice(-6),
+    ts: Date.now()
+  };
 }
 
 function doExecute(args, s, actions) {
   const b = findBen(s.beneficiaries, args.recipient);
-  return transfer(s, Number(args.amount), b ? b.name : String(args.recipient || "المستفيد"), actions);
+  return transfer(s, Number(args.amount), b ? b.name : String(args.recipient || "المستفيد"), actions, b);
+}
+
+function doReceipt(s, actions) {
+  const t = s.txns.find((x) => x.dir === "out" && x.cat === "تحويلات");
+  if (!t) return { ok: false, note: "لا يوجد تحويلات سابقة في سجل العميل — أخبره بلطف أنه ما نفّذ تحويلات بعد." };
+  const name = t.name.replace(/^تحويل إلى\s*/, "");
+  const b = findBen(s.beneficiaries, name);
+  actions.push(receiptAction(t.amount, name, b));
+  return { ok: true, note: `ظهر للعميل إيصال آخر تحويل: ${t.amount} ر.س إلى ${name}. يقدر يشاركه من زر المشاركة في البطاقة.` };
 }
 
 function doAddBen(args, s, actions) {
@@ -344,7 +369,7 @@ export default async function handler(req, res) {
     const amount = Number(body.confirm.amount);
     const b = findBen(s.beneficiaries, body.confirm.recipient);
     const name = b ? b.name : String(body.confirm.recipient || "المستفيد").slice(0, 60);
-    const r = transfer(s, amount, name, actions);
+    const r = transfer(s, amount, name, actions, b);
     const reply = r.ok
       ? `تم تنفيذ التحويل: ${amount} ر.س إلى ${name}. رصيدك الحالي ${s.balance} ر.س.`
       : "تعذّر تنفيذ التحويل: الرصيد غير كافٍ.";
@@ -405,6 +430,7 @@ export default async function handler(req, res) {
     if (last.type === "invest_plan") return `جهّزت لك الخطة: ${last.monthly} ر.س شهرياً بمستوى «${last.risk}» — افتح شاشة الاستثمار وشوف التفاصيل.`;
     if (last.type === "budget") return `تم ضبط ميزانية ${last.category} عند ${last.amount} ر.س شهرياً — تشوفها في شاشة التحليل.`;
     if (last.type === "zakat") return `زكاتك التقديرية ${last.amount} ر.س (2.5% من رصيدك الحالي).`;
+    if (last.type === "receipt") return "هذا إيصال التحويل — تقدر تشاركه من زر المشاركة في البطاقة.";
     if (last.type === "transfer" && last.ok) return `تم تنفيذ التحويل بنجاح. رصيدك الحالي ${s.balance} ر.س.`;
     if (last.type === "transfer") return "تعذّر تنفيذ التحويل: الرصيد غير كافٍ.";
     if (last.type === "open") return "فتحت لك الشاشة.";
@@ -445,6 +471,7 @@ export default async function handler(req, res) {
         else if (name === "set_investment_plan") out = doInvest(fargs, s, actions);
         else if (name === "set_budget") out = doBudget(fargs, s, actions);
         else if (name === "calculate_zakat") out = doZakat(s, actions);
+        else if (name === "show_receipt") out = doReceipt(s, actions);
         else if (name === "open_screen") out = doOpen(fargs, actions);
         else out = { ok: false, note: "أداة غير معروفة." };
         respParts.push({ functionResponse: { name, response: out } });
