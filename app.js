@@ -150,17 +150,56 @@
   var recognizing = false;
   var rec = null;
 
-  function speak(text) {
-    if (!ttsOn || recognizing || !window.speechSynthesis) return;
+  var ttsAudio = null;
+  function stopSpeak() {
+    if (ttsAudio) { try { ttsAudio.pause(); } catch (e) {} ttsAudio = null; }
+    if (window.speechSynthesis) { try { speechSynthesis.cancel(); } catch (e) {} }
+  }
+  // wrap raw 16-bit PCM (from Gemini TTS) in a WAV header so <audio> can play it
+  function pcmToWavUrl(b64, rate) {
+    var bin = atob(b64), n = bin.length;
+    var buf = new ArrayBuffer(44 + n), v = new DataView(buf);
+    function ws(o, s) { for (var i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); }
+    ws(0, "RIFF"); v.setUint32(4, 36 + n, true); ws(8, "WAVE"); ws(12, "fmt ");
+    v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+    ws(36, "data"); v.setUint32(40, n, true);
+    for (var i = 0; i < n; i++) v.setUint8(44 + i, bin.charCodeAt(i));
+    return URL.createObjectURL(new Blob([buf], { type: "audio/wav" }));
+  }
+  // emergency fallback only: browser/system voice (robotic — used if the server voice fails)
+  function browserSpeak(text) {
+    if (!window.speechSynthesis) return;
     try {
-      var u = new SpeechSynthesisUtterance(String(text).replace(/\*\*/g, ""));
+      var u = new SpeechSynthesisUtterance(text);
       u.lang = "ar-SA";
       u.rate = 1.04;
-      var v = (speechSynthesis.getVoices() || []).filter(function (x) { return /^ar/i.test(x.lang); })[0];
+      var vs = speechSynthesis.getVoices() || [];
+      var v = vs.filter(function (x) { return /^ar/i.test(x.lang) && /natural|online/i.test(x.name); })[0]
+        || vs.filter(function (x) { return /^ar/i.test(x.lang); })[0];
       if (v) u.voice = v;
       speechSynthesis.cancel();
       speechSynthesis.speak(u);
-    } catch (e) { /* voice is best-effort */ }
+    } catch (e) {}
+  }
+  function speak(text) {
+    if (!ttsOn || recognizing) return;
+    var clean = String(text).replace(/\*\*/g, "").trim().slice(0, 300);
+    if (!clean) return;
+    stopSpeak();
+    fetch("/api/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: clean })
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (!ttsOn) return;
+      if (d && d.audio) {
+        ttsAudio = new Audio(pcmToWavUrl(d.audio, d.rate || 24000));
+        ttsAudio.play().catch(function () { browserSpeak(clean); });
+      } else {
+        browserSpeak(clean);
+      }
+    }).catch(function () { browserSpeak(clean); });
   }
 
   // ---------------- CHAT UI ----------------
@@ -428,7 +467,11 @@
       spk.onclick = function () {
         ttsOn = !ttsOn;
         try { localStorage.setItem(TTS_KEY, ttsOn ? "1" : "0"); } catch (e) {}
-        if (!ttsOn && window.speechSynthesis) speechSynthesis.cancel();
+        if (!ttsOn) stopSpeak();
+        else {
+          // play a silent clip inside this tap → unlocks audio autoplay on phones
+          try { new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=").play().catch(function () {}); } catch (e) {}
+        }
         renderSpk();
         successBubble(ttsOn ? "تم تفعيل الرد الصوتي — بأقرأ لك الردود." : "تم إيقاف الرد الصوتي.");
       };
@@ -467,7 +510,7 @@
         };
         mic.onclick = function () {
           if (recognizing) { try { rec.stop(); } catch (err) {} return; }
-          if (window.speechSynthesis) speechSynthesis.cancel();
+          stopSpeak();
           recognizing = true;
           mic.classList.add("rec");
           vbase = (cmd && cmd.value.trim()) ? cmd.value.replace(/\s+$/, "") + " " : "";
