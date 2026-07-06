@@ -152,9 +152,36 @@
   var rec = null;
 
   var ttsAudio = null;
+  var ttsNodes = [];
+  var ttsGen = 0; // bump to cancel any in-flight speech
+  var audioCtx = null;
+  function getCtx() {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    if (!audioCtx) audioCtx = new AC();
+    return audioCtx;
+  }
+  function unlockAudio() {
+    var c = getCtx();
+    if (c && c.state === "suspended") { try { c.resume(); } catch (e) {} }
+  }
   function stopSpeak() {
+    ttsGen++;
     if (ttsAudio) { try { ttsAudio.pause(); } catch (e) {} ttsAudio = null; }
+    for (var i = 0; i < ttsNodes.length; i++) { try { ttsNodes[i].stop(); } catch (e) {} }
+    ttsNodes = [];
     if (window.speechSynthesis) { try { speechSynthesis.cancel(); } catch (e) {} }
+  }
+  function b64ToF32(b64) {
+    var bin = atob(b64), n = bin.length >> 1;
+    var out = new Float32Array(n);
+    for (var i = 0; i < n; i++) {
+      var lo = bin.charCodeAt(i * 2), hi = bin.charCodeAt(i * 2 + 1);
+      var v = (hi << 8) | lo;
+      if (v >= 32768) v -= 65536;
+      out[i] = v / 32768;
+    }
+    return out;
   }
   // wrap raw 16-bit PCM (from Gemini TTS) in a WAV header so <audio> can play it
   function pcmToWavUrl(b64, rate) {
@@ -199,27 +226,80 @@
     if (!ttsOn) return;
     try { fetch("/api/tts").catch(function () {}); } catch (e) {}
   }
+  function playJson(d, clean) {
+    if (!ttsOn) return;
+    if (!d || !d.a) { browserSpeak(clean); return; }
+    var src = d.m === "mp3" ? "data:audio/mpeg;base64," + d.a : pcmToWavUrl(d.a, d.r || 24000);
+    ttsAudio = new Audio(src);
+    ttsAudio.play().catch(function () { browserSpeak(clean); });
+  }
+  function postSpeak(clean) {
+    return fetch("/api/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: clean })
+    }).then(function (r) { return r.json(); })
+      .then(function (d) { playJson(d, clean); })
+      .catch(function () { browserSpeak(clean); });
+  }
+  // streaming: schedule PCM chunks through Web Audio as they arrive —
+  // playback starts on the first chunk instead of waiting for the full clip
+  function streamSpeak(clean) {
+    var ctx = getCtx();
+    if (!ctx || !window.ReadableStream || !window.TextDecoder) return Promise.reject(0);
+    var myGen = ttsGen;
+    return fetch("/api/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: clean, stream: 1 })
+    }).then(function (resp) {
+      if (!resp.ok || !resp.body) throw 0;
+      var ct = resp.headers.get("content-type") || "";
+      if (ct.indexOf("ndjson") === -1) return resp.json().then(function (d) { playJson(d, clean); });
+      var reader = resp.body.getReader(), dec = new TextDecoder();
+      var buf = "", nextT = 0, got = false;
+      function pump() {
+        return reader.read().then(function (rr) {
+          if (myGen !== ttsGen || !ttsOn) { try { reader.cancel(); } catch (e) {} return; }
+          if (rr.value) buf += dec.decode(rr.value, { stream: true });
+          var i;
+          while ((i = buf.indexOf("\n")) > -1) {
+            var line = buf.slice(0, i).trim();
+            buf = buf.slice(i + 1);
+            if (!line) continue;
+            var obj; try { obj = JSON.parse(line); } catch (e) { continue; }
+            if (obj.m === "mp3" && obj.a) { playJson(obj, clean); got = true; continue; }
+            if (!obj.a) continue;
+            var pcm = b64ToF32(obj.a);
+            if (!pcm.length) continue;
+            var ab = ctx.createBuffer(1, pcm.length, obj.r || 24000);
+            ab.getChannelData(0).set(pcm);
+            var srcN = ctx.createBufferSource();
+            srcN.buffer = ab;
+            srcN.connect(ctx.destination);
+            var t = Math.max(ctx.currentTime + (got ? 0 : 0.06), nextT);
+            srcN.start(t);
+            nextT = t + ab.duration;
+            ttsNodes.push(srcN);
+            got = true;
+          }
+          if (rr.done) { if (!got) throw 0; return; }
+          return pump();
+        });
+      }
+      return pump();
+    });
+  }
   function speak(text) {
     if (!ttsOn || recognizing) return;
     var clean = speakable(String(text).replace(/\*\*/g, "").trim());
     if (!clean) return;
     stopSpeak();
-    fetch("/api/tts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: clean })
-    }).then(function (r) { return r.json(); }).then(function (d) {
-      if (!ttsOn) return;
-      if (d && d.audio) {
-        var src = d.mime === "audio/mpeg"
-          ? "data:audio/mpeg;base64," + d.audio
-          : pcmToWavUrl(d.audio, d.rate || 24000);
-        ttsAudio = new Audio(src);
-        ttsAudio.play().catch(function () { browserSpeak(clean); });
-      } else {
-        browserSpeak(clean);
-      }
-    }).catch(function () { browserSpeak(clean); });
+    var myGen = ttsGen;
+    streamSpeak(clean).catch(function () {
+      if (myGen !== ttsGen || !ttsOn) return;
+      postSpeak(clean);
+    });
   }
 
   // ---------------- CHAT UI ----------------
@@ -414,6 +494,7 @@
     text = (text || "").trim();
     if (!text || busy) return;
     if (recognizing && rec) { try { rec.stop(); } catch (e) {} }
+    if (ttsOn) unlockAudio();
     busy = true;
     userMsg(text);
     var c = q("#cmd"); if (c) c.value = "";
@@ -491,6 +572,7 @@
         else {
           // play a silent clip inside this tap → unlocks audio autoplay on phones
           try { new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=").play().catch(function () {}); } catch (e) {}
+          unlockAudio();
           warmTts();
         }
         renderSpk();
