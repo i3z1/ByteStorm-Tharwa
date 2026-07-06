@@ -189,11 +189,11 @@
     var chunks = t.match(/[^.!؟?؛]+[.!؟?؛]?/g) || [t];
     var out = "";
     for (var i = 0; i < chunks.length; i++) {
-      if (out && (out + chunks[i]).length > 160) break;
+      if (out && (out + chunks[i]).length > 130) break;
       out += chunks[i];
-      if (out.length >= 90) break;
+      if (out.length >= 60) break;
     }
-    return (out.trim() || t.slice(0, 160));
+    return (out.trim() || t.slice(0, 130));
   }
   function warmTts() {
     if (!ttsOn) return;
@@ -211,7 +211,10 @@
     }).then(function (r) { return r.json(); }).then(function (d) {
       if (!ttsOn) return;
       if (d && d.audio) {
-        ttsAudio = new Audio(pcmToWavUrl(d.audio, d.rate || 24000));
+        var src = d.mime === "audio/mpeg"
+          ? "data:audio/mpeg;base64," + d.audio
+          : pcmToWavUrl(d.audio, d.rate || 24000);
+        ttsAudio = new Audio(src);
         ttsAudio.play().catch(function () { browserSpeak(clean); });
       } else {
         browserSpeak(clean);

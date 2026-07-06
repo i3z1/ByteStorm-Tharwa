@@ -16,6 +16,38 @@ function limited(ip) {
   return arr.length > max;
 }
 
+// same sentence never generated twice per instance — demo commands repeat,
+// so replies become instant after the first play
+const CACHE = new Map();
+function cachePut(k, v) {
+  if (CACHE.size >= 50) CACHE.delete(CACHE.keys().next().value);
+  CACHE.set(k, v);
+}
+
+// fast path: Google Cloud TTS (Chirp3-HD ~<1s). Falls through to Gemini TTS
+// if the key's project doesn't have the Cloud TTS API enabled.
+async function cloudTTS(text, key) {
+  const voices = [process.env.CLOUD_TTS_VOICE, "ar-XA-Chirp3-HD-Charon", "ar-XA-Wavenet-B"].filter(Boolean);
+  for (const name of voices) {
+    try {
+      const r = await fetch("https://texttospeech.googleapis.com/v1/text:synthesize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+        body: JSON.stringify({
+          input: { text },
+          voice: { languageCode: "ar-XA", name },
+          audioConfig: { audioEncoding: "MP3", speakingRate: 1.05 }
+        })
+      });
+      const data = await r.json();
+      if (data.audioContent) return data.audioContent;
+      const code = Number(data.error && data.error.code) || 0;
+      if (code !== 400 && code !== 404) return null; // 403 = API blocked for this key → use Gemini
+    } catch (e) { return null; }
+  }
+  return null;
+}
+
 export default async function handler(req, res) {
   if (req.method === "OPTIONS") { res.status(204).end(); return; }
   if (req.method === "GET") { res.status(204).end(); return; } // warm-up ping from the client
@@ -33,6 +65,18 @@ export default async function handler(req, res) {
 
   const text = String(body.text || "").replace(/\*\*/g, "").trim().slice(0, 300);
   if (!text) { res.status(400).json({ error: "لا يوجد نص." }); return; }
+
+  const hit = CACHE.get(text);
+  if (hit) { res.status(200).json(hit); return; }
+
+  const cloudKey = process.env.GOOGLE_TTS_KEY || KEY;
+  const mp3 = await cloudTTS(text, cloudKey);
+  if (mp3) {
+    const out = { audio: mp3, mime: "audio/mpeg", src: "cloud" };
+    cachePut(text, out);
+    res.status(200).json(out);
+    return;
+  }
 
   const payload = JSON.stringify({
     contents: [{ parts: [{ text: "اقرأ بلهجة سعودية ودّية وواضحة:\n" + text }] }],
@@ -62,7 +106,9 @@ export default async function handler(req, res) {
         if (part) {
           const mime = part.inlineData.mimeType || "";
           const m = mime.match(/rate=(\d+)/);
-          res.status(200).json({ audio: part.inlineData.data, rate: m ? Number(m[1]) : 24000 });
+          const out = { audio: part.inlineData.data, rate: m ? Number(m[1]) : 24000, src: "gemini" };
+          cachePut(text, out);
+          res.status(200).json(out);
           return;
         }
       }
