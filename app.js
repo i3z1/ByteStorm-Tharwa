@@ -51,6 +51,7 @@
     // autofocus only on desktop — on phones it pops the keyboard over the greeting
     var fine = window.matchMedia && matchMedia("(hover: hover) and (pointer: fine)").matches;
     if (id === "s-chat" && fine) { setTimeout(function () { var c = q("#cmd"); if (c) c.focus(); }, 60); }
+    if (id === "s-chat") warmTts();
   }
   window.__tharwaShow = show;
 
@@ -182,9 +183,25 @@
       speechSynthesis.speak(u);
     } catch (e) {}
   }
+  // speak only the first sentence or two — shorter audio generates much faster,
+  // and the full text is already on screen
+  function speakable(t) {
+    var chunks = t.match(/[^.!؟?؛]+[.!؟?؛]?/g) || [t];
+    var out = "";
+    for (var i = 0; i < chunks.length; i++) {
+      if (out && (out + chunks[i]).length > 160) break;
+      out += chunks[i];
+      if (out.length >= 90) break;
+    }
+    return (out.trim() || t.slice(0, 160));
+  }
+  function warmTts() {
+    if (!ttsOn) return;
+    try { fetch("/api/tts").catch(function () {}); } catch (e) {}
+  }
   function speak(text) {
     if (!ttsOn || recognizing) return;
-    var clean = String(text).replace(/\*\*/g, "").trim().slice(0, 300);
+    var clean = speakable(String(text).replace(/\*\*/g, "").trim());
     if (!clean) return;
     stopSpeak();
     fetch("/api/tts", {
@@ -471,6 +488,7 @@
         else {
           // play a silent clip inside this tap → unlocks audio autoplay on phones
           try { new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=").play().catch(function () {}); } catch (e) {}
+          warmTts();
         }
         renderSpk();
         successBubble(ttsOn ? "تم تفعيل الرد الصوتي — بأقرأ لك الردود." : "تم إيقاف الرد الصوتي.");

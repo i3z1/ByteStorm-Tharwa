@@ -18,6 +18,7 @@ function limited(ip) {
 
 export default async function handler(req, res) {
   if (req.method === "OPTIONS") { res.status(204).end(); return; }
+  if (req.method === "GET") { res.status(204).end(); return; } // warm-up ping from the client
   if (req.method !== "POST") { res.status(405).json({ error: "POST only" }); return; }
 
   const KEY = process.env.GEMINI_API_KEY;
@@ -34,7 +35,7 @@ export default async function handler(req, res) {
   if (!text) { res.status(400).json({ error: "لا يوجد نص." }); return; }
 
   const payload = JSON.stringify({
-    contents: [{ parts: [{ text: "اقرأ النص التالي بلهجة سعودية ودّية وواضحة وبإيقاع طبيعي، بدون مقدمات:\n" + text }] }],
+    contents: [{ parts: [{ text: "اقرأ بلهجة سعودية ودّية وواضحة:\n" + text }] }],
     generationConfig: {
       responseModalities: ["AUDIO"],
       speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: VOICE } } }
