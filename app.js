@@ -153,6 +153,7 @@
 
   var SILENT_WAV = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=";
   var ttsNodes = [];
+  var ttsNextT = 0; // shared Web Audio timeline so consecutive parts chain seamlessly
   var ttsGen = 0; // bump to cancel any in-flight speech
   var audioCtx = null;
   var ttsEl = null;      // one persistent <audio> — unlocked once by a tap, reused forever
@@ -185,7 +186,8 @@
   }
   function stopSpeak() {
     ttsGen++;
-    if (ttsEl) { try { ttsEl.pause(); } catch (e) {} }
+    ttsNextT = 0;
+    if (ttsEl) { ttsEl.onended = null; try { ttsEl.pause(); } catch (e) {} }
     for (var i = 0; i < ttsNodes.length; i++) { try { ttsNodes[i].stop(); } catch (e) {} }
     ttsNodes = [];
     if (window.speechSynthesis) { try { speechSynthesis.cancel(); } catch (e) {} }
@@ -283,7 +285,7 @@
         });
       }
       var reader = resp.body.getReader(), dec = new TextDecoder();
-      var buf = "", nextT = 0, got = false;
+      var buf = "", got = false;
       function pump() {
         return reader.read().then(function (rr) {
           if (myGen !== ttsGen || !ttsOn) { try { reader.cancel(); } catch (e) {} if (onFirst) onFirst(); return; }
@@ -304,9 +306,9 @@
             srcN.buffer = ab;
             srcN.connect(ctx.destination);
             if (!got && onFirst) onFirst();
-            var t = Math.max(ctx.currentTime + (got ? 0 : 0.06), nextT);
+            var t = Math.max(ctx.currentTime + (got ? 0 : 0.06), ttsNextT);
             srcN.start(t);
-            nextT = t + ab.duration;
+            ttsNextT = t + ab.duration;
             ttsNodes.push(srcN);
             got = true;
           }
@@ -323,22 +325,43 @@
     var fired = false;
     function go() { if (!fired) { fired = true; if (onReady) onReady(); } }
     if (!ttsOn || recognizing) { go(); return; }
-    var clean = speakable(String(text).replace(/\*\*/g, "").trim());
-    if (!clean) { go(); return; }
+    var full = String(text).replace(/\*\*/g, "").trim().slice(0, 300);
+    if (!full) { go(); return; }
+    // part 1 starts fast; the rest is generated in the background and chains right after
+    var part1 = speakable(full);
+    var rest = full.slice(part1.length).trim();
     stopSpeak();
     var myGen = ttsGen;
     var guard = setTimeout(go, 6500);
     function ready() { clearTimeout(guard); go(); }
     var fine = window.matchMedia && matchMedia("(hover: hover) and (pointer: fine)").matches;
     if (!fine) {
-      // phones: full clip via the persistent unlocked <audio>
-      // (plays reliably, and on iPhone it also bypasses the silent switch)
-      postSpeak(clean, myGen, ready);
+      // phones: persistent unlocked <audio>; the remainder plays on 'ended'
+      var restData = null, p1ended = false;
+      if (rest) {
+        fetch("/api/tts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: rest })
+        }).then(function (r) { return r.json(); }).then(function (d) {
+          restData = d;
+          if (p1ended && myGen === ttsGen && ttsOn && d && d.a) playEl(d, rest, null);
+        }).catch(function () {});
+        getEl().onended = function () {
+          getEl().onended = null;
+          p1ended = true;
+          if (myGen !== ttsGen || !ttsOn) return;
+          if (restData && restData.a) playEl(restData, rest, null);
+        };
+      }
+      postSpeak(part1, myGen, ready);
       return;
     }
-    streamSpeak(clean, ready).catch(function () {
+    streamSpeak(part1, ready).then(function () {
+      if (rest && myGen === ttsGen && ttsOn) return streamSpeak(rest, null);
+    }).catch(function () {
       if (myGen !== ttsGen || !ttsOn) { ready(); return; }
-      postSpeak(clean, myGen, ready);
+      postSpeak(full, myGen, ready);
     });
   }
   function speak(text) { speakReady(text, null); }
