@@ -231,7 +231,7 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     <div class='team'>فريق ByteStorm — هاكاثون امد 2026 · أكاديمية طويق</div>
   </div>
 
-  <div class='dots' id='dots'><i class='on'></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div class='dots' id='dots'><i class='on'></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
 </div>
 
 <script>
@@ -245,6 +245,7 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
   var ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
   var ICON_SHIELD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-3.6 8-10V5.5L12 2 4 5.5V12c0 6.4 8 10 8 10Z"/><path d="M12 8v4"/><path d="M12 15.5h.01"/></svg>';
   var ICON_COINS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7.5" ry="3"/><path d="M4.5 6v5c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3V6"/><path d="M4.5 11v5c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-5"/></svg>';
+  var ICON_USERPLUS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></svg>';
 
   var capB = q('#cap-big'), capS = q('#cap-sub'), log = q('#chatlog'), inbox = q('#inbox');
 
@@ -325,6 +326,14 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
       + (warn ? '<div class="warnrow">' + ICON_SHIELD + '<span>هذا المبلغ أعلى من نمط تحويلاتك المعتاد — تأكد من صحة المستفيد قبل التأكيد.</span></div>' : '')
       + '<div class="confirm"><button class="btn ok">' + ICON_CHECK + 'تأكيد التحويل</button><button class="btn no">إلغاء</button></div>';
     log.appendChild(c); return c;
+  }
+  function benCard() {
+    var c = document.createElement('div'); c.className = 'tcard';
+    c.innerHTML = '<div class="h"><span class="ti">' + ICON_USERPLUS + '</span>مستفيد جديد<span class="badge">تمت الإضافة</span></div>'
+      + row('الاسم', 'خالد الدوسري')
+      + row('البنك', 'بنك الرياض')
+      + row('الآيبان', 'SA71 2000 0000 8899 7766 5544', true);
+    log.appendChild(c);
   }
   function zakatCard() {
     var c = document.createElement('div'); c.className = 'tcard';
@@ -407,8 +416,25 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     confirmCard('6,000.00', true);
     await sleep(4600);
 
-    // ---- scene 3: zakat ----
+    // ---- scene 3: add beneficiary ----
     dot(3);
+    await caption('مستفيد جديد… <span class="hl">بالمحادثة</span>', 'ثَروة يجمع البيانات كاملة — ولا يخترع آيباناً أبداً');
+    await sleep(600); log.innerHTML = '';
+    await typeIn('أضف مستفيد اسمه خالد الدوسري');
+    await pressSend(); userMsg('أضف مستفيد اسمه خالد الدوسري');
+    await think(1300);
+    botMsg('أبشر. عطني <b>رقم الآيبان</b> (يبدأ بـ SA) و<b>اسم البنك</b> عشان أضيف خالد بأمان — ما أسجّل بيانات ناقصة.');
+    await sleep(1400);
+    await typeIn('SA71 2000 0000 8899 7766 5544 — بنك الرياض', 30);
+    await pressSend(); userMsg('SA71 2000 0000 8899 7766 5544 — بنك الرياض');
+    await think(1400);
+    benCard();
+    await sleep(800);
+    botMsg('تمت إضافة <b>خالد الدوسري — بنك الرياض</b>. تقدر تحوّل له مباشرة من الآن.');
+    await sleep(3400);
+
+    // ---- scene 4: zakat ----
+    dot(4);
     await caption('زكاتك… <span class="hl">بلمسة</span>', '2.5% من رصيدك — ببطاقة واضحة وتنبيه شرعي');
     await sleep(600);
     log.innerHTML = '';
@@ -420,8 +446,8 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     botMsg('زكاتك التقديرية <b>614.5 ر.س</b> — تقدير توعوي يفترض حولان الحول وبلوغ النصاب.');
     await sleep(3600);
 
-    // ---- scene 4: goal investing ----
-    dot(4);
+    // ---- scene 5: goal investing ----
+    dot(5);
     await caption('هدفك… <span class="hl">يصير خطة</span>', 'قسط شهري محسوب بعائد مركّب — ومن فائضك الحقيقي');
     await sleep(600);
     log.innerHTML = '';
@@ -437,8 +463,8 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     q('#tracknote').classList.add('show');
     await sleep(3600);
 
-    // ---- scene 5: voice ----
-    dot(5);
+    // ---- scene 6: voice ----
+    dot(6);
     await caption('بصوتك… <span class="hl">وبلهجتك</span>', 'شمول مالي حقيقي — لكبار السن وضعاف البصر');
     await sleep(600); page('p-chat'); log.innerHTML = '';
     q('#mic').classList.add('rec'); q('#wave').classList.add('on');
