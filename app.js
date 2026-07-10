@@ -16,6 +16,10 @@
       { name: "سارة القحطاني", bank: "مصرف الراجحي", iban: "SA03 8000 0000 6080 1016 7519" },
       { name: "محمد الزهراني", bank: "البنك الأهلي SNB", iban: "SA71 1000 0011 2233 4455 6677" }
     ],
+    cards: [
+      { id: "mada", name: "مدى الرقمية", last4: "4821", frozen: false },
+      { id: "credit", name: "الائتمانية بلاتينيوم", last4: "9310", frozen: false }
+    ],
     invest: { monthly: 500, risk: "متوسط", goal: { name: "ادخار عام", amount: 20000, months: 24 } },
     txns: [
       { name: "مطعم النخيل", cat: "مطاعم", amount: 85, dir: "out", when: "اليوم 1:24 م" },
@@ -71,6 +75,30 @@
       + '<div class="ta ' + (plus ? "plus" : "minus") + '">' + fmt(amount) + (plus ? "+" : "−") + '</div>';
     ul.insertBefore(li, ul.firstChild);
     while (ul.children.length > 4) ul.removeChild(ul.lastChild);
+  }
+
+  // ---------------- CARDS (home screen) ----------------
+  var ICON_FREEZE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="m4.9 7 14.2 10"/><path d="m4.9 17 14.2-10"/><path d="m9.5 3.5 2.5 2 2.5-2"/><path d="m9.5 20.5 2.5-2 2.5 2"/><path d="m3.5 9.8 3-.9.4-3.1"/><path d="m20.5 14.2-3 .9-.4 3.1"/><path d="m3.5 14.2 3 .9.4 3.1"/><path d="m20.5 9.8-3-.9-.4-3.1"/></svg>';
+  var ICON_CARDCHIP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="6" width="16" height="12" rx="2.4"/><path d="M4 10.5h5M4 13.5h5M15 10.5h5M15 13.5h5M9 6v12M15 6v12"/></svg>';
+  function renderCards() {
+    var row = q("#cardrow"); if (!row) return;
+    row.innerHTML = "";
+    (state.cards || []).forEach(function (c) {
+      var d = document.createElement("div");
+      d.className = "bcard " + (c.id === "credit" ? "navy" : "sunset") + (c.frozen ? " frozen" : "");
+      d.innerHTML =
+        '<div class="bctop"><span class="bcname">' + esc(c.name) + '</span>'
+        + '<button class="bcfrz" title="' + (c.frozen ? "إعادة التفعيل" : "إيقاف مؤقت") + '">' + ICON_FREEZE + '</button></div>'
+        + '<span class="bcchip">' + ICON_CARDCHIP + '</span>'
+        + '<div class="bcnum">•••• &nbsp;' + esc(c.last4) + '</div>'
+        + '<div class="bcbottom"><span class="bcholder">عبدالعزيز أحمد</span><span class="bcnet">' + (c.id === "credit" ? "VISA" : "mada") + '</span></div>'
+        + '<div class="bcfrozen">' + ICON_FREEZE + ' موقّفة مؤقتاً</div>';
+      q(".bcfrz", d).onclick = function () {
+        c.frozen = !c.frozen;
+        renderCards();
+      };
+      row.appendChild(d);
+    });
   }
 
   // ---------------- BUDGETS (spend screen) ----------------
@@ -408,7 +436,7 @@
       }).then(function (r) { return r.json(); }).then(function (data) {
         if (t.parentNode) t.remove();
         if (data.error) { errorBubble(data.error); busy = false; return; }
-        if (data.state) { state = data.state; renderBudgets(); }
+        if (data.state) { state = data.state; renderBudgets(); renderCards(); }
         var ok = (data.actions || []).some(function (x) { return x.type === "transfer" && x.ok; });
         settle(ok ? "تم التنفيذ" : "فشل", ok ? "var(--green)" : "#F0796B");
         if (data.reply) { history.push({ role: "assistant", text: data.reply }); speak(data.reply); }
@@ -450,6 +478,20 @@
       + cardRow("رصيدك الحالي", '<span class="v">' + fmt(a.base) + '</span>')
       + '<div class="r big"><span class="k">زكاتك التقديرية</span><span class="v">' + fmt(a.amount) + '<span class="c">ر.س</span></span></div>'
       + '<div class="r" style="color:var(--muted);font-size:12.5px">تقدير توعوي — يفترض حولان الحول وبلوغ النصاب</div>';
+    log.appendChild(card); scrollChat();
+  }
+
+  // ---------------- CARD LOCK CARD ----------------
+  function renderCardLockCard(a) {
+    var card = document.createElement("div");
+    card.className = "tcard";
+    var locked = !!a.locked;
+    card.innerHTML =
+      '<div class="h"><span class="ti">' + ICON_FREEZE + '</span>' + (locked ? "إيقاف مؤقت للبطاقة" : "إعادة تفعيل البطاقة")
+      + '<span class="badge" style="' + (locked ? "background:rgba(94,143,176,.18);color:#8FC0DE" : "") + '">' + (locked ? "موقّفة" : "نشطة") + '</span></div>'
+      + cardRow("البطاقة", '<span class="v">' + esc(a.name || "") + ' •••• ' + esc(a.last4 || "") + '</span>')
+      + cardRow("الحالة", '<span class="v" style="color:' + (locked ? "#8FC0DE" : "var(--green)") + '">' + (locked ? "موقّفة مؤقتاً — كل العمليات مرفوضة" : "نشطة — تعمل بشكل طبيعي") + '</span>')
+      + '<div class="r" style="color:var(--muted);font-size:12.5px">' + (locked ? "تقدر تعيد تفعيلها بأي وقت بقولك «فك تجميد بطاقتي»" : "استمتع باستخدامها بأمان") + '</div>';
     log.appendChild(card); scrollChat();
   }
 
@@ -510,6 +552,9 @@
         renderZakatCard(a);
       } else if (a.type === "receipt") {
         renderReceiptCard(a);
+      } else if (a.type === "card_lock") {
+        renderCardLockCard(a);
+        renderCards();
       } else if (a.type === "open" && a.screen) {
         var map = { home: "s-home", spend: "s-spend", invest: "s-invest", chat: "s-chat" };
         var target = map[a.screen];
@@ -545,7 +590,7 @@
         busy = false; return;
       }
       var data = res.data;
-      if (data.state) { state = data.state; renderBudgets(); }
+      if (data.state) { state = data.state; renderBudgets(); renderCards(); }
       if (data.reply) history.push({ role: "assistant", text: data.reply });
       var revealed = false;
       var reveal = function () {
@@ -572,6 +617,7 @@
   // ---------------- SUGGESTION CHIPS ----------------
   var CHIPS = [
     "حوّل 500 لأحمد",
+    "ضاعت بطاقتي!",
     "أبي إيصال آخر تحويل",
     "أبي أجمع 30 ألف لسيارة خلال سنة",
     "احسب زكاتي",
@@ -586,6 +632,7 @@
     log = q("#chatlog");
     renderHome();
     renderBudgets();
+    renderCards();
 
     // greeting
     botMsg("أهلاً بك، أنا <b>ثَروة</b> — مساعدك البنكي الذكي. أنفّذ تحويلاتك، أحسب زكاتك، أضبط ميزانياتك، أقيّم وضعك المالي، وأجهّز لك خطة استثمار توصلك لهدفك. اكتب طلبك بلغتك الطبيعية أو اضغط زر <b>المايك</b> وتكلّم. ولو تبي ردوداً صوتية، فعّل زر <b>السماعة</b> بالأعلى.");

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>جرّبوه الحين — ثَروة</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;700;800;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0B1E2C;--surface:#13293A;--coral:#F1A184;--coral2:#EC7C5A;--text:#ECF2F6;--muted:#7E93A2;--green:#37C98C;--gold:#E2A93B}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:'Cairo',sans-serif;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+
+/* ambient halo */
+.halo{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.halo svg{width:min(150vh,1300px);height:min(150vh,1300px)}
+.ring-slow{transform-origin:450px 450px;animation:spin 60s linear infinite}
+.ring-dash{transform-origin:450px 450px;animation:spinrev 90s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes spinrev{to{transform:rotate(-360deg)}}
+
+.wrap{position:relative;text-align:center;display:flex;flex-direction:column;align-items:center;gap:26px;animation:enter .8s cubic-bezier(.2,.8,.25,1) both}
+@keyframes enter{from{opacity:0;transform:translateY(26px) scale(.97)}to{opacity:1;transform:none}}
+
+.brand{display:flex;align-items:center;gap:12px;font-size:34px;font-weight:900}
+.brand .spark{width:40px;height:40px;color:var(--coral2)}
+.brand .spark svg{width:100%;height:100%;animation:tw 2.6s ease-in-out infinite}
+@keyframes tw{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.14);opacity:.85}}
+
+h1{font-size:clamp(30px,4.6vw,54px);font-weight:900;line-height:1.35}
+h1 .grad{display:block;background:linear-gradient(90deg,#F1A184,#E2A93B,#37C98C);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
+.sub{font-size:clamp(15px,1.7vw,21px);color:var(--muted);font-weight:700;max-width:640px;line-height:1.9}
+.sub b{color:var(--coral)}
+
+.qrcard{background:#fff;border-radius:30px;padding:26px;box-shadow:0 30px 90px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.08),0 0 120px rgba(236,124,90,.18);animation:breathe 3.4s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.018)}}
+.qrcard img{display:block;width:min(42vh,340px);height:min(42vh,340px)}
+
+.url{direction:ltr;font-size:clamp(17px,2.1vw,26px);font-weight:900;letter-spacing:.5px;color:var(--coral)}
+.steps{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.stp{display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:11px 18px;font-size:clamp(13px,1.4vw,17px);font-weight:800}
+.stp .n{width:26px;height:26px;border-radius:50%;background:var(--coral2);color:#16344A;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;flex:0 0 auto}
+@media (prefers-reduced-motion:reduce){.ring-slow,.ring-dash,.brand .spark svg,.qrcard,.wrap{animation:none}}
+</style>
+</head>
+<body>
+<div class="halo"><svg viewBox="0 0 900 900" fill="none">
+<defs><radialGradient id="hg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#EC7C5A" stop-opacity=".14"/><stop offset="60%" stop-color="#EC7C5A" stop-opacity=".05"/><stop offset="100%" stop-color="#EC7C5A" stop-opacity="0"/></radialGradient></defs>
+<circle cx="450" cy="450" r="300" fill="url(#hg)"/>
+<circle cx="450" cy="450" r="345" stroke="rgba(236,124,90,.15)" stroke-width="1.5"/>
+<g class="ring-dash"><circle cx="450" cy="450" r="408" stroke="rgba(226,169,59,.22)" stroke-width="1.5" stroke-dasharray="3 16"/></g>
+<g class="ring-slow">
+<path transform="translate(450 42)" d="M0-14l3.4 9.4L13-1.2 3.4 2.2 0 12l-3.4-9.8L-13-1.2l9.6-3.4Z" fill="#EC7C5A" opacity=".85"/>
+<path transform="translate(858 450)" d="M0-10l2.6 7L10-.8 2.6 1.6 0 9l-2.6-7.4L-10-.8l7.4-2.6Z" fill="#E2A93B" opacity=".6"/>
+<path transform="translate(450 858)" d="M0-12l3 8.2L11.5-1 3 1.9 0 10.5l-3-8.6L-11.5-1l8.5-2.8Z" fill="#F1A184" opacity=".7"/>
+<path transform="translate(42 450)" d="M0-9l2.3 6.3L9-.7 2.3 1.5 0 8.2-2.3 1.5-9-.7l6.7-2Z" fill="#37C98C" opacity=".55"/>
+</g>
+</svg></div>
+
+<div class="wrap">
+  <div class="brand"><span class="spark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7L18.5 9.5 13.8 11.3 12 16l-1.8-4.7L5.5 9.5l4.7-1.8L12 3Z"/><path d="M19 14l.9 2.3 2.3.9-2.3.9L19 20.4l-.9-2.3-2.3-.9 2.3-.9L19 14Z"/></svg></span>ثَروة</div>
+  <h1>لا تصدّقونا…<span class="grad">جرّبوه الحين من جوالكم</span></h1>
+  <div class="qrcard"><img src="qr.png" alt="QR — tharwa-orcin.vercel.app"></div>
+  <div class="url">tharwa-orcin.vercel.app</div>
+  <div class="steps">
+    <span class="stp"><span class="n">1</span>صوّر الرمز بالكاميرا</span>
+    <span class="stp"><span class="n">2</span>افتح شاشة «المساعد»</span>
+    <span class="stp"><span class="n">3</span>قل: «حوّل ٥٠٠ لأحمد» أو «ضاعت بطاقتي!»</span>
+  </div>
+</div>
+</body>
+</html>

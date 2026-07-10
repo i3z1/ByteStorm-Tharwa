@@ -33,6 +33,11 @@ const DEFAULT_TXNS = [
   { name: "راتب — شركة", cat: "دخل", amount: 12000, dir: "in", when: "27 يونيو" }
 ];
 
+const DEFAULT_CARDS = [
+  { id: "mada", name: "مدى الرقمية", last4: "4821", frozen: false },
+  { id: "credit", name: "الائتمانية بلاتينيوم", last4: "9310", frozen: false }
+];
+
 function normAr(t) { return String(t || "").replace(/[ً-ْـ]/g, "").trim(); }
 function findBen(list, name) {
   const n = normAr(name);
@@ -77,6 +82,7 @@ const SYSTEM = (s) => {
 - الميزانيات المضبوطة: ${Object.entries(s.budgets).map(([k, v]) => `${k}: صرف ${s.expenses[k] || 0} من حد ${v} ر.س`).join(" ، ") || "لا يوجد"}
 - آخر العمليات (الأحدث أولاً): ${s.txns.map((t) => `${t.name} — ${t.amount} ر.س ${t.dir === "in" ? "(دخل)" : "(صرف · " + t.cat + ")"} — ${t.when}`).join(" ، ") || "لا يوجد"}
 - المستفيدون المسجّلون: ${s.beneficiaries.map((b) => `${b.name} (${b.bank})`).join(" ، ") || "لا يوجد"}
+- بطاقات العميل: ${s.cards.map((c) => `${c.name} •••• ${c.last4} (${c.frozen ? "موقوفة مؤقتاً" : "نشطة"})`).join(" ، ")}
 - خطة الاستثمار الحالية: ${s.invest.monthly} ر.س شهرياً — مخاطرة: ${s.invest.risk} — الهدف: ${g.amount > 0 ? `${g.name} (${g.amount} ر.س خلال ${g.months} شهراً)` : "غير محدد"}
 
 قاعدة أساسية: الكلام وحده لا ينفّذ شيئاً — أي إجراء (بطاقة تحويل، إضافة مستفيد، خطة استثمار، ميزانية، زكاة، فتح شاشة) يتم فقط عبر استدعاء الأداة فعلياً في نفس هذا الرد. لا تقل أبداً «تم الضبط» أو «تم التنفيذ» أو إن بطاقة أو شاشة ظهرت للعميل إذا لم تستدعِ الأداة — الادعاء النصي بدون أداة يعتبر خطأً جسيماً.
@@ -90,6 +96,14 @@ const SYSTEM = (s) => {
 6) calculate_zakat(): عند سؤال العميل عن زكاته — تحسب 2.5% من رصيده وتعرض بطاقة. وضّح دائماً أنه تقدير توعوي.
 7) show_receipt(): عند طلب إيصال أو وصل آخر تحويل («أبي إيصال آخر عملية») — تعرض بطاقة إيصال قابلة للمشاركة.
 8) open_screen(screen): لفتح شاشة home أو spend أو invest عند الطلب.
+9) set_card_lock(card, lock): إيقاف بطاقة مؤقتاً أو إعادة تفعيلها. استدعها فوراً عند: «جمّد بطاقتي»، «أوقف بطاقة مدى»، «ضاعت بطاقتي»، «انسرقت بطاقتي»، «فك تجميد بطاقتي»، «فعّل بطاقتي». مرّر اسم البطاقة أو نوعها أو آخر 4 أرقام. إذا قال «بطاقتي» فقط وعنده أكثر من بطاقة نشطة اسأله أيّها يقصد (اذكر أسماءها). عند بطاقة مفقودة/مسروقة: جمّدها فوراً بدون أسئلة إضافية، وبعد النجاح طمّن العميل أن أي عملية عليها مرفوضة الآن، واعرض عليه طلب بطاقة بديلة (تصل خلال 3-5 أيام عمل) وأنه يقدر يفك التجميد بنفس الطريقة لو لقاها.
+
+أنت أيضاً خط الدعم الأول للعميل — جاوب استفسارات الخدمة مباشرة من هذه المعلومات بدل تحويله لمركز الاتصال:
+- التحويل المحلي (سريع): فوري ومجاني. الحد اليومي للتحويلات: 60,000 ر.س ويمكن تعديله من إعدادات الأمان.
+- تحديث الهوية/الإقامة: يتم تلقائياً عبر أبشر خلال 24 ساعة من التجديد — ما يحتاج زيارة فرع.
+- الاعتراض على عملية غير معروفة: يقدَّم من التطبيق وتُعالَج خلال 10 أيام عمل، والمبلغ يُعاد إذا ثبت الاحتيال.
+- بطاقة مفقودة أو اشتباه احتيال على البطاقة: الإجراء الفوري هو التجميد المؤقت بأداة set_card_lock.
+- إذا خرج الطلب عن معلوماتك أو احتاج تدخلاً بشرياً (قروض، فتح حسابات، شكاوى معقدة): اعتذر بلطف واعرض تحويله لموظف خدمة العملاء.
 
 قواعد: أجب عن أسئلة الرصيد والمصروفات والدخل والمستفيدين مباشرة من البيانات أعلاه. إذا طلب العميل تقييم وضعه المالي فحلّل من الأرقام (نسبة الادخار من الدخل، أعلى فئات الصرف، تجاوز الميزانيات) وقدّم نصيحتين أو ثلاثاً عملية مختصرة. إذا اقترحت خطة استثمار تأكد أن القسط ضمن الفائض الشهري وإلا نبّه العميل بلطف. التزم بالنطاق البنكي فقط، وإذا سُئلت خارجه اعتذر بلطف ووجّه العميل لما تقدر تساعده فيه.`;
 };
@@ -179,6 +193,18 @@ const TOOLS = [{
           screen: { type: "STRING", enum: ["home", "spend", "invest"] }
         },
         required: ["screen"]
+      }
+    },
+    {
+      name: "set_card_lock",
+      description: "يوقف بطاقة العميل مؤقتاً (تجميد) أو يعيد تفعيلها. استدعه فوراً عند أي طلب مثل: جمّد بطاقتي، أوقف بطاقة مدى، قفل البطاقة، ضاعت بطاقتي، انسرقت بطاقتي، فك التجميد، فعّل بطاقتي. البطاقة الموقوفة تُرفض منها كل العمليات فوراً.",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          card: { type: "STRING", description: "اسم البطاقة أو نوعها أو آخر 4 أرقام (مثل: مدى، الائتمانية، 4821)" },
+          lock: { type: "BOOLEAN", description: "true = إيقاف مؤقت، false = إعادة تفعيل" }
+        },
+        required: ["card", "lock"]
       }
     }
   ]
@@ -298,6 +324,41 @@ function doOpen(args, actions) {
   return { ok: true, note: "تم فتح الشاشة للعميل." };
 }
 
+function findCard(cards, ref) {
+  const n = normAr(ref).replace(/^ال/, "");
+  if (!n) return null;
+  const digits = n.replace(/\D/g, "");
+  if (digits.length >= 4) {
+    const hit = cards.find((c) => c.last4 === digits.slice(-4));
+    if (hit) return hit;
+  }
+  return cards.find((c) => {
+    const cn = normAr(c.name).replace(/^ال/, "");
+    return cn === n || cn.includes(n) || n.includes(cn) || normAr(c.id) === n
+      || (/(مدى|مدي|mada)/i.test(n) && c.id === "mada")
+      || (/(ائتمان|اءتمان|credit|فيزا|visa|بلاتين)/i.test(n) && c.id === "credit");
+  }) || null;
+}
+
+function doCardLock(args, s, actions) {
+  const lock = args.lock !== false;
+  const c = findCard(s.cards, args.card);
+  if (!c) {
+    return { ok: false, note: `لم أتعرف على البطاقة «${args.card}». بطاقات العميل: ${s.cards.map((x) => `${x.name} •••• ${x.last4}`).join(" ، ")}. اسأل العميل أي بطاقة يقصد.` };
+  }
+  if (c.frozen === lock) {
+    return { ok: false, note: `بطاقة ${c.name} •••• ${c.last4} ${lock ? "موقوفة مؤقتاً بالفعل" : "نشطة بالفعل"} — أخبر العميل بذلك.` };
+  }
+  c.frozen = lock;
+  actions.push({ type: "card_lock", name: c.name, last4: c.last4, locked: lock });
+  return {
+    ok: true,
+    note: lock
+      ? `تم إيقاف بطاقة ${c.name} •••• ${c.last4} مؤقتاً — كل العمليات عليها مرفوضة من هذه اللحظة. طمّن العميل، واعرض عليه طلب بطاقة بديلة إذا كانت مفقودة (تصل خلال 3-5 أيام عمل)، وذكّره أنه يقدر يفك التجميد بأي وقت لو لقاها.`
+      : `تمت إعادة تفعيل بطاقة ${c.name} •••• ${c.last4} — تشتغل الآن بشكل طبيعي. أخبر العميل.`
+  };
+}
+
 export default async function handler(req, res) {
   if (req.method === "OPTIONS") { res.status(204).end(); return; }
   if (req.method !== "POST") { res.status(405).json({ error: "POST only" }); return; }
@@ -346,6 +407,14 @@ export default async function handler(req, res) {
           when: String((t && t.when) || "").slice(0, 30)
         })).filter((t) => t.name && t.amount > 0)
       : DEFAULT_TXNS.map((t) => Object.assign({}, t)),
+    cards: Array.isArray(inState.cards) && inState.cards.length
+      ? inState.cards.slice(0, 5).map((c) => ({
+          id: String((c && c.id) || "").slice(0, 20),
+          name: String((c && c.name) || "بطاقة").slice(0, 40),
+          last4: String((c && c.last4) || "").replace(/\D/g, "").slice(-4),
+          frozen: !!(c && c.frozen)
+        })).filter((c) => c.last4)
+      : DEFAULT_CARDS.map((c) => Object.assign({}, c)),
     invest: {
       monthly: (inState.invest && Number(inState.invest.monthly) > 0) ? Number(inState.invest.monthly) : 500,
       risk: (inState.invest && RISKS[normAr(inState.invest.risk)] !== undefined) ? normAr(inState.invest.risk) : "متوسط",
@@ -433,6 +502,9 @@ export default async function handler(req, res) {
     if (last.type === "budget") return `تم ضبط ميزانية ${last.category} عند ${last.amount} ر.س شهرياً — تشوفها في شاشة التحليل.`;
     if (last.type === "zakat") return `زكاتك التقديرية ${last.amount} ر.س (2.5% من رصيدك الحالي).`;
     if (last.type === "receipt") return "هذا إيصال التحويل — تقدر تشاركه من زر المشاركة في البطاقة.";
+    if (last.type === "card_lock") return last.locked
+      ? `تم إيقاف بطاقة ${last.name} •••• ${last.last4} مؤقتاً — كل العمليات عليها مرفوضة الآن، وتقدر تفك التجميد بأي وقت.`
+      : `تمت إعادة تفعيل بطاقة ${last.name} •••• ${last.last4} — تشتغل الآن بشكل طبيعي.`;
     if (last.type === "transfer" && last.ok) return `تم تنفيذ التحويل بنجاح. رصيدك الحالي ${s.balance} ر.س.`;
     if (last.type === "transfer") return "تعذّر تنفيذ التحويل: الرصيد غير كافٍ.";
     if (last.type === "open") return "فتحت لك الشاشة.";
@@ -475,6 +547,7 @@ export default async function handler(req, res) {
         else if (name === "calculate_zakat") out = doZakat(s, actions);
         else if (name === "show_receipt") out = doReceipt(s, actions);
         else if (name === "open_screen") out = doOpen(fargs, actions);
+        else if (name === "set_card_lock") out = doCardLock(fargs, s, actions);
         else out = { ok: false, note: "أداة غير معروفة." };
         respParts.push({ functionResponse: { name, response: out } });
       }

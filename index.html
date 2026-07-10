@@ -42,6 +42,28 @@
 #s-home .tx .ta{font-size:15.5px;font-weight:800;font-variant-numeric:tabular-nums}
 #s-home .ta.minus{color:var(--text)}
 #s-home .ta.plus{color:var(--green)}
+#s-home .cardrow{display:flex;gap:12px;margin-top:14px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+#s-home .cardrow::-webkit-scrollbar{display:none}
+#s-home .bcard{position:relative;flex:0 0 auto;width:216px;height:128px;border-radius:18px;padding:14px 16px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;transition:filter .3s ease,opacity .3s ease}
+#s-home .bcard.sunset{background:linear-gradient(135deg,#EC7C5A 0%,#D96A54 55%,#B14E52 100%)}
+#s-home .bcard.navy{background:linear-gradient(135deg,#274B66 0%,#1B3346 60%,#122536 100%)}
+#s-home .bcard::before{content:'';position:absolute;left:-30px;top:-40px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.08);pointer-events:none}
+#s-home .bctop{display:flex;align-items:center;justify-content:space-between}
+#s-home .bcname{font-size:12.5px;font-weight:800;color:#fff;opacity:.92}
+#s-home .bcfrz{width:30px;height:30px;border:none;border-radius:10px;background:rgba(255,255,255,.16);color:#fff;display:flex;align-items:center;justify-content:center;font-family:inherit;cursor:pointer}
+#s-home .bcfrz svg{width:16px;height:16px}
+#s-home .bcchip{position:absolute;top:44px;right:16px;color:rgba(255,255,255,.75)}
+#s-home .bcchip svg{width:30px;height:30px}
+#s-home .bcnum{direction:ltr;text-align:left;font-size:15px;font-weight:800;color:#fff;letter-spacing:2px;margin-top:auto}
+#s-home .bcbottom{display:flex;align-items:center;justify-content:space-between}
+#s-home .bcholder{font-size:11px;color:rgba(255,255,255,.78);font-weight:700}
+#s-home .bcnet{font-size:13px;font-weight:900;color:#fff;font-style:italic;letter-spacing:.5px}
+#s-home .bcfrozen{position:absolute;inset:0;display:none;align-items:center;justify-content:center;gap:8px;background:rgba(11,30,44,.55);backdrop-filter:blur(2.5px);color:#BFDCEE;font-size:14px;font-weight:900;border-radius:18px;pointer-events:none}
+#s-home .bcard.frozen .bcfrz{position:relative;z-index:2}
+#s-home .bcfrozen svg{width:18px;height:18px}
+#s-home .bcard.frozen{filter:saturate(.25)}
+#s-home .bcard.frozen .bcfrozen{display:flex}
+#s-home .bcard.frozen .bcfrz{background:rgba(191,220,238,.28)}
 #s-home .fab{position:absolute;left:18px;bottom:102px;background:var(--coral2);color:#fff;border:none;border-radius:30px;padding:13px 20px;display:flex;align-items:center;gap:9px;font-weight:800;font-size:15px;font-family:inherit;box-shadow:0 12px 26px rgba(236,124,90,.45)}
 #s-home .fab svg{width:20px;height:20px}
 #s-home .bnav{position:absolute;bottom:0;left:0;right:0;height:80px;background:#0D2231;border-top:1px solid var(--line);display:flex;justify-content:space-around;align-items:center;padding-bottom:6px}
@@ -214,6 +236,12 @@ background:conic-gradient(var(--c1) 0 35%,var(--c2) 35% 57%,var(--c3) 57% 75%,va
 .pscard.sol h3{color:var(--green)}
 .pscard p{font-size:14.5px;color:#c3d2dd;line-height:1.9}
 .pscard b{color:var(--coral)}
+.impact{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.imp{background:#0f2231;border:1px solid var(--line);border-radius:16px;padding:22px 20px;text-align:center}
+.imp .n{font-size:34px;font-weight:900;color:var(--coral2);line-height:1;margin-bottom:10px}
+.imp h3{font-size:15px;font-weight:900;color:#fff;margin-bottom:8px}
+.imp p{font-size:13.5px;color:#c3d2dd;line-height:1.85}
+.imp b{color:var(--coral)}
 .steps{display:flex;gap:12px;align-items:stretch;flex-wrap:wrap}
 .step{flex:1;min-width:230px;background:#0f2231;border:1px solid var(--line);border-radius:16px;padding:19px}
 .step .n{width:31px;height:31px;border-radius:10px;background:rgba(236,124,90,.15);color:var(--coral);font-weight:900;font-size:15px;display:flex;align-items:center;justify-content:center;margin-bottom:11px}
@@ -352,6 +380,8 @@ body{overflow:hidden;overscroll-behavior:none;touch-action:manipulation;-webkit-
     <div class="qa"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div><div class="lb">استثمار</div></div>
     <div class="qa"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7L18.5 9.5 13.8 11.3 12 16l-1.8-4.7L5.5 9.5l4.7-1.8L12 3Z"/><path d="M19 14l.9 2.3 2.3.9-2.3.9L19 20.4l-.9-2.3-2.3-.9 2.3-.9L19 14Z"/></svg></div><div class="lb">المساعد</div></div>
   </div>
+  <div class="sec"><span>بطاقاتي</span><a>إدارة البطاقات</a></div>
+  <div class="cardrow" id="cardrow"></div>
   <div class="sec"><span>آخر العمليات</span><a>عرض الكل</a></div>
   <ul class="txns">
     <li class="tx"><div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 2v8a2 2 0 0 0 4 0V2M9 2v20M17 2c-1.5 0-2.5 1.8-2.5 4.5S15.5 11 17 11v11"/></svg></div><div class="tm"><div class="tn">مطعم النخيل</div><div class="td">مطاعم · اليوم 1:24 م</div></div><div class="ta minus">85.00−</div></li>
@@ -426,6 +456,13 @@ body{overflow:hidden;overscroll-behavior:none;touch-action:manipulation;-webkit-
     <div class='pscard sol'><h3>الحل</h3><p>«ثَروة» — مصرفي خاص لكل عميل داخل التطبيق البنكي: يحوّل اللغة الطبيعية، كتابةً وصوتاً، إلى عمليات واستشارات بنكية فعلية عبر <b>Function-Calling</b> — فيبسّط الخدمات ويحقق شمولاً مالياً حقيقياً.</p></div>
   </div>
 
+  <h2><span class='b'></span>الأثر على البنك — لماذا يتبنّاه؟</h2>
+  <div class='impact'>
+    <div class='imp'><div class='n'>~80%</div><h3>من استفسارات العملاء متكررة</h3><p>رسوم، حدود تحويل، بطاقة مفقودة، تحديث بيانات — ثَروة يحلها <b>فورياً وعلى مدار الساعة</b> بدل ما تصل لمركز الاتصال.</p></div>
+    <div class='imp'><div class='n'>×10+</div><h3>خفض تكلفة خدمة العميل</h3><p>مكالمة مركز الاتصال تكلّف البنك أضعاف الرد الآلي — كل استفسار يحسمه ثَروة يخفض تكلفة الخدمة <b>بعشرات المرات</b> ويفرّغ الموظفين للحالات المعقدة.</p></div>
+    <div class='imp'><div class='n'>3 ثوانٍ</div><h3>خدمة ذاتية لحظية</h3><p>«ضاعت بطاقتي!» → تجميد فوري مؤقت بالمحادثة بدل الانتظار على الخط — <b>ضغط أقل على الفروع والهاتف المصرفي</b> ورضا أعلى للعملاء.</p></div>
+  </div>
+
   <h2><span class='b'></span>المزايا الأساسية</h2>
   <div class='grid'>
     <div class='card'><h3>تحويلات بالمحادثة</h3><p>«حوّل ٥٠٠ لأحمد» → المساعد يفهم الأمر، يعرض بطاقة تأكيد فيها المستفيد والآيبان والمبلغ، وينفّذ فعلياً بعد موافقتك — ويحدّث الرصيد.</p></div>
@@ -436,6 +473,8 @@ body{overflow:hidden;overscroll-behavior:none;touch-action:manipulation;-webkit-
     <div class='card'><h3>رؤى مالية فورية</h3><p>أسئلة طبيعية مثل «كم صرفت على المطاعم؟» أو «كم دفعت في العثيم؟» يجيب عنها المساعد بأرقام حقيقية من بيانات ومعاملات العميل.</p></div>
     <div class='card'><h3>أوامر صوتية بالعربية</h3><p>اضغط زر المايك وتكلّم — «حوّل خمسمية لأحمد» — يتحوّل صوتك إلى نص تراجعه قبل الإرسال، ومع خيار الرد الصوتي من زر السماعة. شمول حقيقي لكبار السن وضعاف البصر.</p></div>
     <div class='card'><h3>حماية ذكية قبل التنفيذ</h3><p>أي تحويل بمبلغ غير معتاد يظهر معه تنبيه حماية داخل بطاقة التأكيد — الذكاء الاصطناعي يقترح، والقرار النهائي دائماً بيد العميل.</p></div>
+    <div class='card'><h3>بطاقاتك بالمحادثة</h3><p>«ضاعت بطاقتي!» — يجمّد المساعد البطاقة مؤقتاً في ثوانٍ فترفض كل العمليات فوراً، ويعرض طلب بديلة — وفك التجميد بنفس السهولة لو لقيتها. ومن الشاشة الرئيسية بلمسة واحدة.</p></div>
+    <div class='card'><h3>خط الدعم الأول</h3><p>رسوم التحويل؟ الحد اليومي؟ تحديث الهوية؟ الاعتراض على عملية؟ — ثَروة يجيب فوراً من معرفة الخدمة، ويحوّل للموظف البشري فقط عند الحاجة. دعم أسرع للعميل وتكلفة أقل للبنك.</p></div>
     <div class='card'><h3>شمول مالي للجميع</h3><p>استشارة مالية ذكية متاحة لكل عميل داخل التطبيق — لا للأثرياء فقط.</p></div>
   </div>
 
@@ -443,7 +482,7 @@ body{overflow:hidden;overscroll-behavior:none;touch-action:manipulation;-webkit-
   <div class='steps'>
     <div class='step'><span class='n'>1</span><h3>العميل يطلب</h3><p>كتابةً أو صوتاً بالعربية: «أبي أجمع ٣٠ ألف لسيارة خلال سنة» — واجهة التطبيق ترسل الطلب لدالة خادمية على Vercel.</p></div>
     <div class='arrow'>←</div>
-    <div class='step'><span class='n'>2</span><h3>الذكاء يفهم ويقترح</h3><p>نموذج <b>Google Gemini</b> يستدعي الأداة البنكية المناسبة من ٧ أدوات Function-Calling، والحسابات المالية تتم بكود حتمي على الخادم.</p></div>
+    <div class='step'><span class='n'>2</span><h3>الذكاء يفهم ويقترح</h3><p>نموذج <b>Google Gemini</b> يستدعي الأداة البنكية المناسبة من ٩ أدوات Function-Calling، والحسابات المالية تتم بكود حتمي على الخادم.</p></div>
     <div class='arrow'>←</div>
     <div class='step'><span class='n'>3</span><h3>العميل يؤكد والنظام ينفّذ</h3><p>بطاقة تأكيد بشرية قبل أي عملية، ثم تنفيذ حتمي في الخادم — <b>الذكاء يقترح ولا يملك التنفيذ</b>، ومفتاح الـ API لا يصل للمتصفح أبداً.</p></div>
   </div>
@@ -471,7 +510,7 @@ body{overflow:hidden;overscroll-behavior:none;touch-action:manipulation;-webkit-
 (function () {
   if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   if (!('IntersectionObserver' in window)) return;
-  var els = document.querySelectorAll('.about .card,.about .step,.about .pscard,.about .member,.about h2,.about .tags');
+  var els = document.querySelectorAll('.about .card,.about .step,.about .pscard,.about .imp,.about .member,.about h2,.about .tags');
   var io = new IntersectionObserver(function (entries) {
     entries.forEach(function (en) {
       if (en.isIntersecting) { en.target.classList.add('vis'); io.unobserve(en.target); }
