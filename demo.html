@@ -50,6 +50,18 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
 .tx .ta{font-weight:800}.ta.minus{color:var(--text)}.ta.plus{color:var(--green)}
 .tx.new{animation:rise .5s ease-out}
 @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.bcards{display:flex;gap:9px;margin-top:11px}
+.bcard2{position:relative;flex:1;height:88px;border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;transition:filter .5s ease}
+.bcard2::before{content:'';position:absolute;left:-22px;top:-30px;width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,.08)}
+.bcard2.sunset{background:linear-gradient(135deg,#EC7C5A,#B14E52)}
+.bcard2.navy{background:linear-gradient(135deg,#274B66,#122536)}
+.bcard2 .bn{font-size:10.5px;font-weight:800;color:#fff;opacity:.92}
+.bcard2 .b4{direction:ltr;text-align:right;font-size:12.5px;font-weight:800;color:#fff;letter-spacing:1.5px}
+.bcard2 .net{position:absolute;bottom:9px;left:11px;font-size:10px;font-weight:900;color:#fff;font-style:italic}
+.bcard2 .fz{position:absolute;inset:0;display:none;align-items:center;justify-content:center;gap:6px;background:rgba(11,30,44,.58);backdrop-filter:blur(2px);color:#BFDCEE;font-size:11px;font-weight:900}
+.bcard2 .fz svg{width:13px;height:13px}
+.bcard2.frozen{filter:saturate(.22)}
+.bcard2.frozen .fz{display:flex;animation:rise .45s ease-out}
 
 /* chat */
 #p-chat .hdr{padding:52px 16px 12px;background:#0D2231;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:11px}
@@ -176,6 +188,11 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
         <div class='amt' id='balv'>24,580<span class='c'>.00 ر.س</span></div>
         <div class='chip'>جاري</div>
       </div>
+      <div class='sec'><span>بطاقاتي</span><a>إدارة</a></div>
+      <div class='bcards'>
+        <div class='bcard2 sunset' id='dc-mada'><div class='bn'>مدى الرقمية</div><div class='b4'>•••• 4821</div><span class='net'>mada</span><div class='fz'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M12 2v20'/><path d='m4.9 7 14.2 10'/><path d='m4.9 17 14.2-10'/></svg>موقّفة مؤقتاً</div></div>
+        <div class='bcard2 navy'><div class='bn'>الائتمانية بلاتينيوم</div><div class='b4'>•••• 9310</div><span class='net'>VISA</span></div>
+      </div>
       <div class='sec'><span>آخر العمليات</span><a>عرض الكل</a></div>
       <ul class='txns' id='txns'>
         <li class='tx'><div class='ti'>م</div><div class='tm'><div class='tn'>مطعم النخيل</div><div class='td'>مطاعم · اليوم</div></div><div class='ta minus'>85.00−</div></li>
@@ -232,7 +249,7 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     <div class='team'>فريق ByteStorm — هاكاثون امد 2026 · أكاديمية طويق</div>
   </div>
 
-  <div class='dots' id='dots'><i class='on'></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div class='dots' id='dots'><i class='on'></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
 </div>
 
 <script>
@@ -249,8 +266,10 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
   var ICON_USERPLUS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></svg>';
   var ICON_RCPT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2.5-1.5L9 22l2.5-1.5L14 22l2.5-1.5L19 22l1-.5V2l-1 .5L16.5 2 14 3.5 11.5 2 9 3.5 6.5 2 4 2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>';
   var ICON_SHARE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4"/><path d="m15.4 6.5-6.8 4"/></svg>';
+  var ICON_FREEZE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="m4.9 7 14.2 10"/><path d="m4.9 17 14.2-10"/></svg>';
 
   var capB = q('#cap-big'), capS = q('#cap-sub'), log = q('#chatlog'), inbox = q('#inbox');
+  var TXNS_HTML = q('#txns').innerHTML; // pristine list, restored every loop
 
   // scale the composition to always fit the screen height (projectors, laptops)
   function fitScale() {
@@ -348,6 +367,14 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
       + row('الآيبان', 'SA71 2000 0000 8899 7766 5544', true);
     log.appendChild(c); sc();
   }
+  function cardLockCard() {
+    var c = document.createElement('div'); c.className = 'tcard';
+    c.innerHTML = '<div class="h"><span class="ti">' + ICON_FREEZE + '</span>إيقاف مؤقت للبطاقة<span class="badge" style="background:rgba(94,143,176,.18);color:#8FC0DE">موقّفة</span></div>'
+      + row('البطاقة', 'مدى الرقمية •••• 4821')
+      + row('الحالة', '<span style="color:#8FC0DE">موقّفة مؤقتاً — كل العمليات مرفوضة</span>')
+      + '<div class="r" style="color:var(--muted);font-size:10.5px">لقيتها؟ قل «فك تجميد بطاقتي» وترجع تشتغل فوراً</div>';
+    log.appendChild(c); sc();
+  }
   function zakatCard() {
     var c = document.createElement('div'); c.className = 'tcard';
     c.innerHTML = '<div class="h"><span class="ti">' + ICON_COINS + '</span>حاسبة الزكاة<span class="badge">2.5%</span></div>'
@@ -375,7 +402,8 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     q('#outro').classList.remove('on');
     log.innerHTML = ''; page('p-home'); dot(0);
     q('#balv').innerHTML = '24,580<span class="c">.00 ر.س</span>';
-    var nt = q('#txns .tx.new'); if (nt) nt.remove();
+    q('#txns').innerHTML = TXNS_HTML;
+    q('#dc-mada').classList.remove('frozen');
     q('#wave').classList.remove('on'); q('#mic').classList.remove('rec');
     inbox.innerHTML = '<span class="ph">اكتب أو اضغط المايك وتكلّم…</span>';
     capB.className = 'big'; capS.className = 'sub'; capB.textContent = ''; capS.textContent = '';
@@ -420,6 +448,7 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     li.className = 'tx new';
     li.innerHTML = '<div class="ti">أ</div><div class="tm"><div class="tn">تحويل إلى أحمد العتيبي</div><div class="td">تحويل · الآن</div></div><div class="ta minus">500.00−</div>';
     q('#txns').insertBefore(li, q('#txns').firstChild);
+    q('#txns').removeChild(q('#txns').lastElementChild); // keep 3 rows — cards row needs the space
     await countBalance(24580, 24080, 1400);
     await sleep(2300);
 
@@ -435,10 +464,26 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     confirmCard('6,000.00', true);
     await sleep(4600);
 
-    // ---- scene 3: add beneficiary ----
+    // ---- scene 3: lost card → instant freeze ----
     dot(3);
-    await caption('مستفيد جديد… <span class="hl">بالمحادثة</span>', 'ثَروة يجمع البيانات كاملة — ولا يخترع آيباناً أبداً');
+    await caption('ضاعت بطاقتك؟ <span class="hl">جمّدها بثانية</span>', 'خدمة ذاتية فورية — بدون مركز اتصال ولا انتظار على الخط');
     await sleep(600); log.innerHTML = '';
+    await typeIn('ضاعت بطاقة مدى!');
+    await pressSend(); userMsg('ضاعت بطاقة مدى!');
+    await think(1200);
+    cardLockCard();
+    await sleep(900);
+    botMsg('جمّدتها فوراً — <b>كل العمليات على مدى •••• 4821 مرفوضة من هذه اللحظة</b>. أطلب لك بديلة؟ توصلك خلال <b>3-5 أيام عمل</b>، وإذا لقيتها أفكّ التجميد بلحظة.');
+    await sleep(2300);
+    page('p-home');
+    await sleep(700);
+    q('#dc-mada').classList.add('frozen');
+    await sleep(2800);
+
+    // ---- scene 4: add beneficiary ----
+    dot(4);
+    await caption('مستفيد جديد… <span class="hl">بالمحادثة</span>', 'ثَروة يجمع البيانات كاملة — ولا يخترع آيباناً أبداً');
+    await sleep(600); page('p-chat'); log.innerHTML = '';
     await typeIn('أضف مستفيد اسمه خالد الدوسري');
     await pressSend(); userMsg('أضف مستفيد اسمه خالد الدوسري');
     await think(1300);
@@ -452,8 +497,8 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     botMsg('تمت إضافة <b>خالد الدوسري — بنك الرياض</b>. تقدر تحوّل له مباشرة من الآن.');
     await sleep(3400);
 
-    // ---- scene 4: zakat ----
-    dot(4);
+    // ---- scene 5: zakat ----
+    dot(5);
     await caption('زكاتك… <span class="hl">بلمسة</span>', '2.5% من رصيدك — ببطاقة واضحة وتنبيه شرعي');
     await sleep(600);
     log.innerHTML = '';
@@ -465,8 +510,8 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     botMsg('زكاتك التقديرية <b>614.5 ر.س</b> — تقدير توعوي يفترض حولان الحول وبلوغ النصاب.');
     await sleep(3600);
 
-    // ---- scene 5: goal investing ----
-    dot(5);
+    // ---- scene 6: goal investing ----
+    dot(6);
     await caption('هدفك… <span class="hl">يصير خطة</span>', 'قسط شهري محسوب بعائد مركّب — ومن فائضك الحقيقي');
     await sleep(600);
     log.innerHTML = '';
@@ -482,8 +527,8 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     q('#tracknote').classList.add('show');
     await sleep(3600);
 
-    // ---- scene 6: voice ----
-    dot(6);
+    // ---- scene 7: voice ----
+    dot(7);
     await caption('بصوتك… <span class="hl">وبلهجتك</span>', 'شمول مالي حقيقي — لكبار السن وضعاف البصر');
     await sleep(600); page('p-chat'); log.innerHTML = '';
     q('#mic').classList.add('rec'); q('#wave').classList.add('on');
