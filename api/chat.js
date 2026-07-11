@@ -96,7 +96,8 @@ const SYSTEM = (s) => {
 6) calculate_zakat(): عند سؤال العميل عن زكاته — تحسب 2.5% من رصيده وتعرض بطاقة. وضّح دائماً أنه تقدير توعوي.
 7) show_receipt(): عند طلب إيصال أو وصل آخر تحويل («أبي إيصال آخر عملية») — تعرض بطاقة إيصال قابلة للمشاركة.
 8) open_screen(screen): لفتح شاشة home أو spend أو invest عند الطلب.
-9) set_card_lock(card, lock): إيقاف بطاقة مؤقتاً أو إعادة تفعيلها. استدعها فوراً عند: «جمّد بطاقتي»، «أوقف بطاقة مدى»، «ضاعت بطاقتي»، «انسرقت بطاقتي»، «فك تجميد بطاقتي»، «فعّل بطاقتي». مرّر اسم البطاقة أو نوعها أو آخر 4 أرقام. إذا قال «بطاقتي» فقط وعنده أكثر من بطاقة نشطة اسأله أيّها يقصد (اذكر أسماءها). عند بطاقة مفقودة/مسروقة: جمّدها فوراً بدون أسئلة إضافية، وبعد النجاح طمّن العميل أن أي عملية عليها مرفوضة الآن، واعرض عليه طلب بطاقة بديلة (تصل خلال 3-5 أيام عمل) وأنه يقدر يفك التجميد بنفس الطريقة لو لقاها.
+9) financial_health(): يحسب درجة صحة العميل المالية من 100 ويعرض بطاقة بصرية بعداد وثلاثة عوامل. استدعها فوراً عند أي طلب تقييم للوضع المالي: «قيّم وضعي المالي»، «كيف وضعي المالي»، «كم درجتي المالية». بعد النجاح علّق باختصار وقدّم نصيحة عملية واحدة على أضعف عامل.
+10) set_card_lock(card, lock): إيقاف بطاقة مؤقتاً أو إعادة تفعيلها. استدعها فوراً عند: «جمّد بطاقتي»، «أوقف بطاقة مدى»، «ضاعت بطاقتي»، «انسرقت بطاقتي»، «فك تجميد بطاقتي»، «فعّل بطاقتي». مرّر اسم البطاقة أو نوعها أو آخر 4 أرقام. إذا قال «بطاقتي» فقط وعنده أكثر من بطاقة نشطة اسأله أيّها يقصد (اذكر أسماءها). عند بطاقة مفقودة/مسروقة: جمّدها فوراً بدون أسئلة إضافية، وبعد النجاح طمّن العميل أن أي عملية عليها مرفوضة الآن، واعرض عليه طلب بطاقة بديلة (تصل خلال 3-5 أيام عمل) وأنه يقدر يفك التجميد بنفس الطريقة لو لقاها.
 
 أنت أيضاً خط الدعم الأول للعميل — جاوب استفسارات الخدمة مباشرة من هذه المعلومات بدل تحويله لمركز الاتصال:
 - التحويل المحلي (سريع): فوري ومجاني. الحد اليومي للتحويلات: 60,000 ر.س ويمكن تعديله من إعدادات الأمان.
@@ -105,7 +106,7 @@ const SYSTEM = (s) => {
 - بطاقة مفقودة أو اشتباه احتيال على البطاقة: الإجراء الفوري هو التجميد المؤقت بأداة set_card_lock.
 - إذا خرج الطلب عن معلوماتك أو احتاج تدخلاً بشرياً (قروض، فتح حسابات، شكاوى معقدة): اعتذر بلطف واعرض تحويله لموظف خدمة العملاء.
 
-قواعد: أجب عن أسئلة الرصيد والمصروفات والدخل والمستفيدين مباشرة من البيانات أعلاه. إذا طلب العميل تقييم وضعه المالي فحلّل من الأرقام (نسبة الادخار من الدخل، أعلى فئات الصرف، تجاوز الميزانيات) وقدّم نصيحتين أو ثلاثاً عملية مختصرة. إذا اقترحت خطة استثمار تأكد أن القسط ضمن الفائض الشهري وإلا نبّه العميل بلطف. التزم بالنطاق البنكي فقط، وإذا سُئلت خارجه اعتذر بلطف ووجّه العميل لما تقدر تساعده فيه.`;
+قواعد: أجب عن أسئلة الرصيد والمصروفات والدخل والمستفيدين مباشرة من البيانات أعلاه. تقييم الوضع المالي يتم حصراً عبر أداة financial_health (لا تحلّل نصياً بدونها). إذا اقترحت خطة استثمار تأكد أن القسط ضمن الفائض الشهري وإلا نبّه العميل بلطف. التزم بالنطاق البنكي فقط، وإذا سُئلت خارجه اعتذر بلطف ووجّه العميل لما تقدر تساعده فيه.`;
 };
 
 const TOOLS = [{
@@ -194,6 +195,11 @@ const TOOLS = [{
         },
         required: ["screen"]
       }
+    },
+    {
+      name: "financial_health",
+      description: "يحسب درجة الصحة المالية للعميل من 100 (نسبة الادخار + الالتزام بالميزانيات + توازن الصرف) ويعرض بطاقة بصرية بعداد دائري وثلاثة عوامل ملونة. استدعه فوراً عند: قيّم وضعي المالي، كيف وضعي المالي، كم درجتي المالية، افحص صحتي المالية.",
+      parameters: { type: "OBJECT", properties: {} }
     },
     {
       name: "set_card_lock",
@@ -322,6 +328,48 @@ function doZakat(s, actions) {
 function doOpen(args, actions) {
   actions.push({ type: "open", screen: String(args.screen || "") });
   return { ok: true, note: "تم فتح الشاشة للعميل." };
+}
+
+function doHealth(s, actions) {
+  const totalExp = Object.values(s.expenses).reduce((a, b) => a + b, 0);
+  const surplus = Math.max(0, s.income - totalExp);
+  const saveRatio = s.income > 0 ? surplus / s.income : 0;
+  const savePts = Math.round(Math.min(1, saveRatio / 0.3) * 45);
+  const saveStatus = saveRatio >= 0.25 ? "ok" : (saveRatio >= 0.1 ? "warn" : "bad");
+
+  const bKeys = Object.keys(s.budgets);
+  let budgetPts, budgetNote, budgetStatus;
+  if (!bKeys.length) {
+    budgetPts = 18;
+    budgetStatus = "warn";
+    budgetNote = "ما ضبطت ميزانيات بعد — جرّب «حط ميزانية 1500 للمطاعم»";
+  } else {
+    const okCount = bKeys.filter((k) => (s.expenses[k] || 0) < s.budgets[k]).length;
+    budgetPts = Math.round(okCount / bKeys.length * 30);
+    budgetStatus = okCount === bKeys.length ? "ok" : (okCount ? "warn" : "bad");
+    budgetNote = `${okCount} من ${bKeys.length} ${bKeys.length === 1 ? "ميزانية" : "ميزانيات"} ضمن الحد`;
+  }
+
+  const vals = Object.values(s.expenses);
+  const topVal = vals.length ? Math.max.apply(null, vals) : 0;
+  const topShare = totalExp > 0 ? topVal / totalExp : 0;
+  const topCat = Object.keys(s.expenses).find((k) => s.expenses[k] === topVal) || "";
+  const balancePts = Math.round(Math.max(0, Math.min(1, (0.6 - topShare) / 0.25)) * 25);
+  const balanceStatus = topShare <= 0.4 ? "ok" : (topShare <= 0.5 ? "warn" : "bad");
+
+  const score = Math.max(5, Math.min(100, savePts + budgetPts + balancePts));
+  const factors = [
+    { name: "نسبة الادخار", pts: savePts, max: 45, status: saveStatus, note: `توفّر ~${Math.round(saveRatio * 100)}% من دخلك (الموصى به 30%+)` },
+    { name: "الالتزام بالميزانيات", pts: budgetPts, max: 30, status: budgetStatus, note: budgetNote },
+    { name: "توازن الصرف", pts: balancePts, max: 25, status: balanceStatus, note: `أعلى فئة (${topCat}) تمثل ${Math.round(topShare * 100)}% من صرفك` }
+  ];
+  // the weakest factor (as a fraction of its max) becomes the actionable tip
+  const weakest = factors.reduce((a, b) => (a.pts / a.max <= b.pts / b.max ? a : b));
+  actions.push({ type: "health", score, factors, focus: weakest.name });
+  return {
+    ok: true,
+    note: `درجة الصحة المالية: ${score}/100 — العوامل: ${factors.map((f) => `${f.name} ${f.pts}/${f.max} (${f.note})`).join(" ، ")}. ظهرت البطاقة البصرية للعميل. علّق باختصار على الدرجة وقدّم نصيحة عملية واحدة تركز على أضعف عامل (${weakest.name}).`
+  };
 }
 
 function findCard(cards, ref) {
@@ -502,6 +550,7 @@ export default async function handler(req, res) {
     if (last.type === "budget") return `تم ضبط ميزانية ${last.category} عند ${last.amount} ر.س شهرياً — تشوفها في شاشة التحليل.`;
     if (last.type === "zakat") return `زكاتك التقديرية ${last.amount} ر.س (2.5% من رصيدك الحالي).`;
     if (last.type === "receipt") return "هذا إيصال التحويل — تقدر تشاركه من زر المشاركة في البطاقة.";
+    if (last.type === "health") return `صحتك المالية ${last.score} من 100 — تفاصيل العوامل الثلاثة في البطاقة، وأضعفها حالياً ${last.focus}.`;
     if (last.type === "card_lock") return last.locked
       ? `تم إيقاف بطاقة ${last.name} •••• ${last.last4} مؤقتاً — كل العمليات عليها مرفوضة الآن، وتقدر تفك التجميد بأي وقت.`
       : `تمت إعادة تفعيل بطاقة ${last.name} •••• ${last.last4} — تشتغل الآن بشكل طبيعي.`;
@@ -548,6 +597,7 @@ export default async function handler(req, res) {
         else if (name === "show_receipt") out = doReceipt(s, actions);
         else if (name === "open_screen") out = doOpen(fargs, actions);
         else if (name === "set_card_lock") out = doCardLock(fargs, s, actions);
+        else if (name === "financial_health") out = doHealth(s, actions);
         else out = { ok: false, note: "أداة غير معروفة." };
         respParts.push({ functionResponse: { name, response: out } });
       }

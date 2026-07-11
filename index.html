@@ -280,6 +280,18 @@ footer a{color:var(--coral);font-weight:700;text-decoration:none}
 @keyframes micpulse{0%,100%{box-shadow:0 0 0 0 rgba(240,121,107,.55)}50%{box-shadow:0 0 0 13px rgba(240,121,107,0)}}
 #s-chat .warnrow{margin-top:12px;display:flex;gap:9px;align-items:flex-start;background:rgba(226,169,59,.13);border:1px solid rgba(226,169,59,.35);color:var(--gold);font-size:13px;font-weight:700;line-height:1.6;padding:11px 13px;border-radius:13px}
 #s-chat .warnrow svg{width:18px;height:18px;flex:none;margin-top:2px}
+#s-chat .hgwrap{position:relative;width:138px;height:138px;margin:16px auto 10px}
+#s-chat .hgwrap svg{width:100%;height:100%}
+#s-chat .hgarc{transition:stroke-dashoffset 1.3s cubic-bezier(.2,.7,.2,1)}
+#s-chat .hgnum{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:36px;font-weight:900;line-height:1}
+#s-chat .hgnum span{font-size:11.5px;color:var(--muted);font-weight:700;margin-top:4px}
+#s-chat .hfrow{padding:8px 2px;border-top:1px solid var(--line)}
+#s-chat .hfrow .hft{display:flex;justify-content:space-between;align-items:center;font-size:13px}
+#s-chat .hfrow .fn{font-weight:800}
+#s-chat .hfrow .fpts{font-weight:800;font-variant-numeric:tabular-nums;font-size:12.5px}
+#s-chat .hfrow .ftrack{height:8px;background:var(--surface2);border-radius:5px;overflow:hidden;margin-top:6px}
+#s-chat .hfrow .ffill{display:block;height:100%;border-radius:5px;transition:width 1s cubic-bezier(.2,.7,.2,1)}
+#s-chat .hfrow .fnote{font-size:11.5px;color:var(--muted);margin-top:5px}
 #s-invest .tracknote{margin-top:7px;font-size:13px;font-weight:800}
 #s-invest .tracknote.ok{color:var(--green)}
 #s-invest .tracknote.warn{color:var(--gold)}
@@ -469,7 +481,7 @@ body{overflow:hidden;overscroll-behavior:none;touch-action:manipulation;-webkit-
     <div class='card'><h3>إدارة المستفيدين</h3><p>أضف مستفيداً جديداً بالمحادثة («أضف مستفيد اسمه خالد») ثم حوّل له مباشرة — الذكاء الاصطناعي يتذكّر مستفيديك.</p></div>
     <div class='card'><h3>خطة استثمار مرتبطة بهدف حقيقي</h3><p>«أبي أجمع 30 ألف لسيارة خلال سنة» — يحسب المساعد القسط الشهري المطلوب <b>بعائد مركّب</b> حسب مستوى المخاطرة، ويتأكد أنه ضمن فائضك الشهري (دخلك − مصروفاتك).</p></div>
     <div class='card'><h3>زكاة وميزانيات بالمحادثة</h3><p>«احسب زكاتي» تعرض بطاقة بزكاة رصيدك (2.5%)، و«حط ميزانية 1500 للمطاعم» تضبط حد صرف يظهر بشريط تقدم في شاشة التحليل مع تنبيه عند التجاوز.</p></div>
-    <div class='card'><h3>مستشار مالي شخصي</h3><p>«قيّم وضعي المالي» — يحلّل نسبة الادخار من الدخل وأعلى فئات الصرف ويقدّم نصائح عملية من أرقامك الفعلية، لا نصائح عامة.</p></div>
+    <div class='card'><h3>درجة صحتك المالية من 100</h3><p>«قيّم وضعي المالي» — بطاقة بعداد دائري يحسب درجتك من نسبة الادخار والالتزام بالميزانيات وتوازن الصرف، مع نصيحة عملية على أضعف عامل. أرقامك الفعلية، لا نصائح عامة.</p></div>
     <div class='card'><h3>رؤى مالية فورية</h3><p>أسئلة طبيعية مثل «كم صرفت على المطاعم؟» أو «كم دفعت في العثيم؟» يجيب عنها المساعد بأرقام حقيقية من بيانات ومعاملات العميل.</p></div>
     <div class='card'><h3>أوامر صوتية بالعربية</h3><p>اضغط زر المايك وتكلّم — «حوّل خمسمية لأحمد» — يتحوّل صوتك إلى نص تراجعه قبل الإرسال، ومع خيار الرد الصوتي من زر السماعة. شمول حقيقي لكبار السن وضعاف البصر.</p></div>
     <div class='card'><h3>حماية ذكية قبل التنفيذ</h3><p>أي تحويل بمبلغ غير معتاد يظهر معه تنبيه حماية داخل بطاقة التأكيد — الذكاء الاصطناعي يقترح، والقرار النهائي دائماً بيد العميل.</p></div>
@@ -482,7 +494,7 @@ body{overflow:hidden;overscroll-behavior:none;touch-action:manipulation;-webkit-
   <div class='steps'>
     <div class='step'><span class='n'>1</span><h3>العميل يطلب</h3><p>كتابةً أو صوتاً بالعربية: «أبي أجمع ٣٠ ألف لسيارة خلال سنة» — واجهة التطبيق ترسل الطلب لدالة خادمية على Vercel.</p></div>
     <div class='arrow'>←</div>
-    <div class='step'><span class='n'>2</span><h3>الذكاء يفهم ويقترح</h3><p>نموذج <b>Google Gemini</b> يستدعي الأداة البنكية المناسبة من ٩ أدوات Function-Calling، والحسابات المالية تتم بكود حتمي على الخادم.</p></div>
+    <div class='step'><span class='n'>2</span><h3>الذكاء يفهم ويقترح</h3><p>نموذج <b>Google Gemini</b> يستدعي الأداة البنكية المناسبة من ١٠ أدوات Function-Calling، والحسابات المالية تتم بكود حتمي على الخادم.</p></div>
     <div class='arrow'>←</div>
     <div class='step'><span class='n'>3</span><h3>العميل يؤكد والنظام ينفّذ</h3><p>بطاقة تأكيد بشرية قبل أي عملية، ثم تنفيذ حتمي في الخادم — <b>الذكاء يقترح ولا يملك التنفيذ</b>، ومفتاح الـ API لا يصل للمتصفح أبداً.</p></div>
   </div>

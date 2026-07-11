@@ -481,6 +481,35 @@
     log.appendChild(card); scrollChat();
   }
 
+  // ---------------- FINANCIAL HEALTH CARD ----------------
+  var ICON_PULSE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>';
+  var FCOLORS = { ok: "var(--green)", warn: "var(--gold)", bad: "#F0796B" };
+  function renderHealthCard(a) {
+    var score = Math.max(0, Math.min(100, Math.round(a.score)));
+    var color = score >= 75 ? "#37C98C" : (score >= 50 ? "#E2A93B" : "#F0796B");
+    var C = Math.round(2 * Math.PI * 40 * 100) / 100;
+    var card = document.createElement("div");
+    card.className = "tcard";
+    var rows = (a.factors || []).map(function (f) {
+      var c = FCOLORS[f.status] || FCOLORS.warn;
+      var pc = Math.round(f.pts / f.max * 100);
+      return '<div class="hfrow"><div class="hft"><span class="fn">' + esc(f.name) + '</span><span class="fpts" style="color:' + c + '">' + f.pts + "/" + f.max + '</span></div>'
+        + '<div class="ftrack"><span class="ffill" style="width:' + pc + '%;background:' + c + '"></span></div>'
+        + '<div class="fnote">' + esc(f.note || "") + '</div></div>';
+    }).join("");
+    card.innerHTML =
+      '<div class="h"><span class="ti">' + ICON_PULSE + '</span>صحتك المالية<span class="badge" style="background:rgba(255,255,255,.07);color:' + color + '">' + score + '/100</span></div>'
+      + '<div class="hgwrap"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="var(--surface2)" stroke-width="9"/>'
+      + '<circle class="hgarc" cx="50" cy="50" r="40" fill="none" stroke="' + color + '" stroke-width="9" stroke-linecap="round" stroke-dasharray="' + C + '" stroke-dashoffset="' + C + '" transform="rotate(-90 50 50)"/></svg>'
+      + '<div class="hgnum" style="color:' + color + '">' + score + '<span>من 100</span></div></div>'
+      + rows;
+    log.appendChild(card); scrollChat();
+    var arc = q(".hgarc", card);
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { arc.style.strokeDashoffset = (C * (1 - score / 100)).toFixed(2); });
+    });
+  }
+
   // ---------------- CARD LOCK CARD ----------------
   function renderCardLockCard(a) {
     var card = document.createElement("div");
@@ -555,6 +584,8 @@
       } else if (a.type === "card_lock") {
         renderCardLockCard(a);
         renderCards();
+      } else if (a.type === "health") {
+        renderHealthCard(a);
       } else if (a.type === "open" && a.screen) {
         var map = { home: "s-home", spend: "s-spend", invest: "s-invest", chat: "s-chat" };
         var target = map[a.screen];
