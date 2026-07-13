@@ -14,7 +14,8 @@ const MODELS = [
 // ---- best-effort in-memory rate limit (per serverless instance) ----
 const HITS = new Map();
 function limited(ip) {
-  const now = Date.now(), win = 60000, max = 25;
+  // generous: the whole venue (judges scanning the QR + presenter) shares one NAT IP
+  const now = Date.now(), win = 60000, max = 150;
   const arr = (HITS.get(ip) || []).filter((t) => now - t < win);
   arr.push(now);
   HITS.set(ip, arr);
@@ -226,6 +227,7 @@ function doPropose(args, s, actions) {
   const warn = (amount >= 5000 || amount > s.balance * 0.4)
     ? "هذا المبلغ أعلى من نمط تحويلاتك المعتاد — تأكد من صحة المستفيد قبل التأكيد."
     : "";
+  s.pending = { amount, recipient: b.name };
   actions.push({ type: "confirm", amount, recipient: b.name, bank: b.bank, iban: b.iban, account: s.account, warn });
   return { ok: true, note: `تم عرض بطاقة التأكيد للعميل — المستفيد المطابق: ${b.name} (${b.bank}). في ردك اذكر اسم المستفيد الكامل وبنكه حتى يتأكد العميل أنه الشخص الصحيح، واطلب منه مراجعة التفاصيل والضغط على زر التأكيد.` + (warn ? " ظهر في البطاقة تنبيه حماية لأن المبلغ أعلى من المعتاد — نبّه العميل بلطف أن يتأكد من المستفيد." : "") };
 }
@@ -255,8 +257,17 @@ function receiptAction(amount, recipient, ben) {
 }
 
 function doExecute(args, s, actions) {
-  const b = findBen(s.beneficiaries, args.recipient);
-  return transfer(s, Number(args.amount), b ? b.name : String(args.recipient || "المستفيد"), actions, b);
+  // hard gate: no execution without a proposal shown first — even if the model
+  // (or a probing user prompt) tries to skip the confirmation card
+  if (!s.pending) {
+    const out = doPropose(args, s, actions);
+    if (!out.ok) return out;
+    return { ok: false, note: "لا يوجد تحويل بانتظار التأكيد — عُرضت للعميل بطاقة التأكيد الآن. لا يُنفَّذ أي تحويل قبل موافقة العميل الصريحة، حتى لو طلب التنفيذ المباشر — أخبره بلطف أن هذه حماية إلزامية." };
+  }
+  const b = findBen(s.beneficiaries, args.recipient || s.pending.recipient);
+  const amount = Number(args.amount) > 0 ? Number(args.amount) : s.pending.amount;
+  s.pending = null;
+  return transfer(s, amount, b ? b.name : String(args.recipient || "المستفيد"), actions, b);
 }
 
 function doReceipt(s, actions) {
@@ -307,6 +318,8 @@ function doInvest(args, s, actions) {
 
 function doBudget(args, s, actions) {
   const raw = normAr(args.category);
+  // empty raw would match the first category via indexOf("") === 0
+  if (!raw) return { ok: false, note: "الفئة غير محددة — اسأل العميل أي فئة يقصد: " + CATS.join("، ") + "." };
   const cat = CATS.find((c) => normAr(c) === raw || normAr(c).indexOf(raw) > -1 || raw.indexOf(normAr(c)) > -1) || "";
   if (!cat) return { ok: false, note: "الفئة غير معروفة — الفئات المتاحة: " + CATS.join("، ") + ". اسأل العميل أي فئة يقصد." };
   let amount = Number(args.amount);
@@ -463,6 +476,11 @@ export default async function handler(req, res) {
           frozen: !!(c && c.frozen)
         })).filter((c) => c.last4)
       : DEFAULT_CARDS.map((c) => Object.assign({}, c)),
+    // last un-actioned transfer proposal (set by propose, cleared on execute/confirm) —
+    // execute_transfer refuses to run without it, whatever the model decides
+    pending: (inState.pending && Number(inState.pending.amount) > 0)
+      ? { amount: Number(inState.pending.amount), recipient: String(inState.pending.recipient || "").slice(0, 60) }
+      : null,
     invest: {
       monthly: (inState.invest && Number(inState.invest.monthly) > 0) ? Number(inState.invest.monthly) : 500,
       risk: (inState.invest && RISKS[normAr(inState.invest.risk)] !== undefined) ? normAr(inState.invest.risk) : "متوسط",
@@ -486,6 +504,7 @@ export default async function handler(req, res) {
     const amount = Number(body.confirm.amount);
     const b = findBen(s.beneficiaries, body.confirm.recipient);
     const name = b ? b.name : String(body.confirm.recipient || "المستفيد").slice(0, 60);
+    s.pending = null;
     const r = transfer(s, amount, name, actions, b);
     const reply = r.ok
       ? `تم تنفيذ التحويل: ${amount} ر.س إلى ${name}. رصيدك الحالي ${s.balance} ر.س.`
@@ -496,10 +515,13 @@ export default async function handler(req, res) {
 
   const hist = Array.isArray(body.history) ? body.history.slice(-20) : [];
   const contents = hist
-    .filter((h) => h && (h.role === "user" || h.role === "assistant") && typeof h.text === "string")
+    .filter((h) => h && (h.role === "user" || h.role === "assistant") && typeof h.text === "string" && h.text.trim())
     .map((h) => ({ role: h.role === "assistant" ? "model" : "user", parts: [{ text: String(h.text).slice(0, 800) }] }));
-  if (!contents.length || contents[0].role !== "user") {
-    res.status(400).json({ error: "لا توجد رسالة صالحة." });
+  // Gemini requires the first content to be a user turn; a 20-message window can
+  // start mid-conversation on a model turn, so trim instead of rejecting.
+  while (contents.length && contents[0].role !== "user") contents.shift();
+  if (!contents.length) {
+    res.status(400).json({ error: "اكتب رسالتك ثم أرسلها 🙂" });
     return;
   }
 
@@ -518,12 +540,19 @@ export default async function handler(req, res) {
     let lastErr = null;
     for (let attempt = 0; attempt < 2; attempt++) {
       for (const model of MODELS) {
-        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "x-goog-api-key": KEY },
-          body: payload
-        });
-        const data = await r.json();
+        let data;
+        try {
+          const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "x-goog-api-key": KEY },
+            body: payload
+          });
+          data = await r.json();
+        } catch (e) {
+          // transient network error / non-JSON body → fall through to the next model
+          lastErr = { message: String((e && e.message) || e) };
+          continue;
+        }
         if (data.error) {
           lastErr = data.error;
           const code = Number(data.error.code) || 0;
@@ -534,7 +563,7 @@ export default async function handler(req, res) {
         return data;
       }
       // whole chain rate-limited → brief pause, then one more sweep
-      if (attempt === 0) await new Promise((r) => setTimeout(r, 3000));
+      if (attempt === 0) await new Promise((r) => setTimeout(r, 1000));
     }
     return { error: lastErr || { message: "unavailable" } };
   }
@@ -607,6 +636,10 @@ export default async function handler(req, res) {
     if (!reply) reply = "تمام.";
     res.status(200).json({ reply, state: s, actions });
   } catch (err) {
+    // a tool may have executed before the crash — same rule as the data.error
+    // branch: never show an error bubble when the action already happened
+    const canned = cannedReply();
+    if (canned) { res.status(200).json({ reply: canned, state: s, actions }); return; }
     res.status(200).json({ error: "حدث خطأ في الاتصال بالمساعد." });
   }
 }

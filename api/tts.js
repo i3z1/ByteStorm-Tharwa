@@ -11,7 +11,8 @@ const VOICE = process.env.GEMINI_TTS_VOICE || "Kore";
 
 const HITS = new Map();
 function limited(ip) {
-  const now = Date.now(), win = 60000, max = 20;
+  // generous: the whole venue (judges scanning the QR + presenter) shares one NAT IP
+  const now = Date.now(), win = 60000, max = 60;
   const arr = (HITS.get(ip) || []).filter((t) => now - t < win);
   arr.push(now);
   HITS.set(ip, arr);
