@@ -461,9 +461,13 @@
         }, 430);
       }
     }
+    // Samsung/iOS Arabic keyboards emit Arabic-Indic digits — normalize them
+    function toEnDigits(s) {
+      return String(s).replace(/[٠-٩۰-۹]/g, function (d) { return String.fromCharCode((d.charCodeAt(0) & 15) + 48); });
+    }
     boxes.forEach(function (b, i) {
       b.oninput = function () {
-        b.value = b.value.replace(/\D/g, "").slice(-1);
+        b.value = toEnDigits(b.value).replace(/\D/g, "").slice(-1);
         b.classList.toggle("full", !!b.value);
         if (b.value && i < 3) boxes[i + 1].focus();
         if (boxes.every(function (o) { return o.value; })) verify();
@@ -472,7 +476,7 @@
         if (e.key === "Backspace" && !b.value && i > 0) boxes[i - 1].focus();
       };
       b.onpaste = function (e) {
-        var t = ((e.clipboardData || window.clipboardData).getData("text") || "").replace(/\D/g, "").slice(0, 4);
+        var t = toEnDigits((e.clipboardData || window.clipboardData).getData("text") || "").replace(/\D/g, "").slice(0, 4);
         if (t.length === 4) {
           e.preventDefault();
           boxes.forEach(function (o, j) { o.value = t[j]; o.classList.add("full"); });
@@ -511,6 +515,9 @@
       card.appendChild(d);
     }
     function execTransfer() {
+      // serialize behind any in-flight chat request — a reply landing after the
+      // transfer would clobber state with a pre-transfer snapshot
+      if (busy) { setTimeout(execTransfer, 400); return; }
       busy = true;
       var t = typingOn();
       fetch("/api/chat", {
@@ -704,6 +711,18 @@
     var total = 0; chunks.forEach(function (u) { total += u.length; });
     var out = new Uint8Array(total), p = 0;
     chunks.forEach(function (u) { out.set(u, p); p += u.length; });
+    // iOS (esp. standalone-PWA) can't reliably download blobs — use the share
+    // sheet there instead; desktop and Android keep the normal direct download
+    var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    if (isIOS) {
+      try {
+        var f = new File([out], name, { type: "application/pdf" });
+        if (navigator.canShare && navigator.canShare({ files: [f] })) {
+          navigator.share({ files: [f], title: name }).catch(function () {});
+          return;
+        }
+      } catch (e) {}
+    }
     var url = URL.createObjectURL(new Blob([out], { type: "application/pdf" }));
     var el = document.createElement("a");
     el.href = url; el.download = name;
