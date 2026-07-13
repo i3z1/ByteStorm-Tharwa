@@ -404,6 +404,77 @@
     return '<div class="r"><span class="k">' + k + '</span>' + vHtml + '</div>';
   }
 
+  // ---------------- OTP SIMULATION (fake SMS + code entry) ----------------
+  var ICON_MSG = '<svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z"/></svg>';
+  var ICON_LOCK = '<svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+  function showSmsNotif(code) {
+    var page = q("#s-chat");
+    var old = q(".smsnotif", page); if (old) old.remove();
+    var n = document.createElement("div");
+    n.className = "smsnotif";
+    n.innerHTML = '<div class="snic">' + ICON_MSG + '</div><div class="snb"><div class="snt">ثروة — رسالة نصية<span>الآن</span></div>'
+      + '<div class="snm">رمز التحقق: <b>' + code + '</b> — لا تشارك الرمز مع أي أحد.</div></div>';
+    n.onclick = function () { n.classList.add("hide"); setTimeout(function () { n.remove(); }, 450); };
+    page.appendChild(n);
+    setTimeout(function () {
+      if (n.parentNode) { n.classList.add("hide"); setTimeout(function () { n.remove(); }, 450); }
+    }, 8000);
+  }
+  function otpGate(mount, onOk) {
+    var code = String(Math.floor(1000 + Math.random() * 9000));
+    mount.innerHTML = '<div class="otpwrap"><div class="otpt">' + ICON_LOCK + 'أدخل رمز التحقق المرسل إلى جوالك ‎05x xxx xx42</div>'
+      + '<div class="otpboxes">'
+      + '<input type="tel" inputmode="numeric" maxlength="1" autocomplete="one-time-code"><input type="tel" inputmode="numeric" maxlength="1">'
+      + '<input type="tel" inputmode="numeric" maxlength="1"><input type="tel" inputmode="numeric" maxlength="1">'
+      + '</div><div class="otprow"><span>ما وصلك الرمز؟</span><a>إعادة إرسال</a></div></div>';
+    var boxes = Array.prototype.slice.call(mount.querySelectorAll(".otpboxes input"));
+    var wrap = q(".otpboxes", mount);
+    showSmsNotif(code);
+    scrollChat();
+    function verify() {
+      var v = boxes.map(function (b) { return b.value; }).join("");
+      if (v.length < 4) return;
+      if (v === code) {
+        mount.innerHTML = '<div class="otpwrap" style="border-top:none;padding-top:2px"><div class="otpok">' + ICON_CHECK + 'تم التحقق من الرمز</div></div>';
+        var sn = q(".smsnotif", q("#s-chat")); if (sn) sn.remove();
+        onOk();
+      } else {
+        wrap.classList.add("err");
+        setTimeout(function () {
+          wrap.classList.remove("err");
+          boxes.forEach(function (b) { b.value = ""; b.classList.remove("full"); });
+          boxes[0].focus();
+        }, 430);
+      }
+    }
+    boxes.forEach(function (b, i) {
+      b.oninput = function () {
+        b.value = b.value.replace(/\D/g, "").slice(-1);
+        b.classList.toggle("full", !!b.value);
+        if (b.value && i < 3) boxes[i + 1].focus();
+        if (boxes.every(function (o) { return o.value; })) verify();
+      };
+      b.onkeydown = function (e) {
+        if (e.key === "Backspace" && !b.value && i > 0) boxes[i - 1].focus();
+      };
+      b.onpaste = function (e) {
+        var t = ((e.clipboardData || window.clipboardData).getData("text") || "").replace(/\D/g, "").slice(0, 4);
+        if (t.length === 4) {
+          e.preventDefault();
+          boxes.forEach(function (o, j) { o.value = t[j]; o.classList.add("full"); });
+          verify();
+        }
+      };
+    });
+    q(".otprow a", mount).onclick = function () {
+      code = String(Math.floor(1000 + Math.random() * 9000));
+      boxes.forEach(function (b) { b.value = ""; b.classList.remove("full"); });
+      boxes[0].focus();
+      showSmsNotif(code);
+    };
+    boxes[0].focus();
+  }
+
   // ---------------- TRANSFER CONFIRMATION CARD ----------------
   function renderConfirmCard(a) {
     var card = document.createElement("div");
@@ -426,8 +497,8 @@
       d.innerHTML = '<span class="k">الحالة</span><span class="v" style="color:' + color + '">' + label + '</span>';
       card.appendChild(d);
     }
-    q(".btn.ok", card).onclick = function () {
-      if (busy) return; busy = true;
+    function execTransfer() {
+      busy = true;
       var t = typingOn();
       fetch("/api/chat", {
         method: "POST",
@@ -447,6 +518,11 @@
         errorBubble("تعذّر الاتصال. حاول مرة ثانية.");
         busy = false;
       });
+    }
+    q(".btn.ok", card).onclick = function () {
+      if (busy) return;
+      // bank-grade step: OTP entry before anything moves
+      otpGate(q(".confirm", card), execTransfer);
     };
     q(".btn.no", card).onclick = function () {
       settle("أُلغي", "var(--muted)");
@@ -455,17 +531,26 @@
     };
   }
 
-  // ---------------- BENEFICIARY CARD ----------------
+  // ---------------- BENEFICIARY CARD (OTP-gated) ----------------
   function renderBeneficiaryCard(a) {
     var card = document.createElement("div");
     card.className = "tcard";
     var init = esc((a.name || "م").trim().charAt(0));
     card.innerHTML =
-      '<div class="h"><span class="ti">' + ICON_USERPLUS + '</span>مستفيد جديد<span class="badge">تمت الإضافة</span></div>'
+      '<div class="h"><span class="ti">' + ICON_USERPLUS + '</span>مستفيد جديد<span class="badge" style="background:rgba(226,169,59,.16);color:#E2A93B">بانتظار التحقق</span></div>'
       + cardRow("الاسم", '<span class="who"><span class="pa">' + init + '</span><span class="v">' + esc(a.name) + '</span></span>')
       + cardRow("البنك", '<span class="v">' + esc(a.bank || "") + '</span>')
-      + cardRow("الآيبان", '<span class="v" style="direction:ltr;font-size:12.5px;letter-spacing:.3px">' + esc(a.iban || "") + '</span>');
+      + cardRow("الآيبان", '<span class="v" style="direction:ltr;font-size:12.5px;letter-spacing:.3px">' + esc(a.iban || "") + '</span>')
+      + '<div class="confirm"></div>';
     log.appendChild(card); scrollChat();
+    otpGate(q(".confirm", card), function () {
+      var badge = q(".badge", card);
+      badge.style.background = ""; badge.style.color = "";
+      badge.textContent = "تمت الإضافة";
+      var m = "تم التحقق — أضفت " + (a.name || "المستفيد") + " لمستفيديك، وتقدر تحوّل له مباشرة من الآن.";
+      history.push({ role: "assistant", text: m });
+      botMsg(m);
+    });
   }
 
   // ---------------- ZAKAT CARD ----------------
@@ -527,6 +612,91 @@
   // ---------------- RECEIPT CARD (shareable) ----------------
   var ICON_RECEIPT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2.5-1.5L9 22l2.5-1.5L14 22l2.5-1.5L19 22l1-.5V2l-1 .5L16.5 2 14 3.5 11.5 2 9 3.5 6.5 2 4 2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>';
   var ICON_SHARE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4"/><path d="m15.4 6.5-6.8 4"/></svg>';
+  var ICON_DOWNLOAD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+
+  // ---------------- RECEIPT → PDF (canvas → embedded JPEG → hand-built PDF) ----------------
+  // no external libs: nothing to fetch, nothing to fail during the demo
+  function receiptPdf(a, when) {
+    var W = 1000, H = 1360;
+    var c = document.createElement("canvas"); c.width = W; c.height = H;
+    var g = c.getContext("2d");
+    g.fillStyle = "#0B1E2C"; g.fillRect(0, 0, W, H);
+    var grd = g.createLinearGradient(0, 0, 0, 300);
+    grd.addColorStop(0, "#13293A"); grd.addColorStop(1, "#0B1E2C");
+    g.fillStyle = grd; g.fillRect(0, 0, W, 300);
+    function star(cx, cy, r, col) {
+      g.beginPath();
+      g.moveTo(cx, cy - r); g.quadraticCurveTo(cx + r * .13, cy - r * .13, cx + r, cy);
+      g.quadraticCurveTo(cx + r * .13, cy + r * .13, cx, cy + r);
+      g.quadraticCurveTo(cx - r * .13, cy + r * .13, cx - r, cy);
+      g.quadraticCurveTo(cx - r * .13, cy - r * .13, cx, cy - r);
+      g.closePath(); g.fillStyle = col; g.fill();
+    }
+    star(478, 100, 52, "#EC7C5A"); star(548, 152, 24, "#F5A882");
+    g.direction = "rtl"; g.textAlign = "center";
+    g.fillStyle = "#ECF2F6"; g.font = "800 52px Tajawal, sans-serif";
+    g.fillText("إيصال تحويل — ثَروة", 500, 268);
+    g.fillStyle = "#37C98C"; g.font = "700 30px Tajawal, sans-serif";
+    g.fillText("✓ عملية ناجحة", 500, 322);
+    g.fillStyle = "#ECF2F6"; g.font = "800 92px Tajawal, sans-serif";
+    g.fillText(fmt(a.amount), 500, 452);
+    g.fillStyle = "#7E93A2"; g.font = "700 32px Tajawal, sans-serif";
+    g.fillText("ريال سعودي", 500, 505);
+    var rows = [
+      ["المستفيد", a.recipient || ""],
+      a.bank ? ["البنك", a.bank] : null,
+      a.iban ? ["الآيبان", a.iban] : null,
+      ["من حساب", state.account || ""],
+      ["الرقم المرجعي", a.ref || ""],
+      ["التاريخ", when]
+    ].filter(Boolean);
+    var y = 620;
+    rows.forEach(function (r) {
+      g.textAlign = "right"; g.fillStyle = "#7E93A2"; g.font = "600 29px Tajawal, sans-serif";
+      g.fillText(r[0], 900, y);
+      g.textAlign = "left"; g.fillStyle = "#ECF2F6"; g.font = "700 31px Tajawal, sans-serif";
+      g.fillText(String(r[1]), 100, y);
+      g.strokeStyle = "rgba(255,255,255,.08)"; g.beginPath(); g.moveTo(100, y + 36); g.lineTo(900, y + 36); g.stroke();
+      y += 96;
+    });
+    g.textAlign = "center"; g.fillStyle = "#7E93A2"; g.font = "600 24px Tajawal, sans-serif";
+    g.fillText("إيصال إلكتروني صادر من ثَروة — المساعد المصرفي الذكي", 500, H - 90);
+    g.font = "700 24px Tajawal, sans-serif"; g.fillStyle = "#EC7C5A"; g.direction = "ltr";
+    g.fillText("tharwa-orcin.vercel.app", 500, H - 50);
+    downloadPdfFromJpeg(c.toDataURL("image/jpeg", 0.92), W, H, "إيصال-" + (a.ref || "ثروة") + ".pdf");
+  }
+  function downloadPdfFromJpeg(dataUrl, wPx, hPx, name) {
+    var bin = atob(dataUrl.split(",")[1]);
+    var img = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) img[i] = bin.charCodeAt(i);
+    var wPt = 400, hPt = Math.round(wPt * hPx / wPx);
+    function enc(s) { var u = new Uint8Array(s.length); for (var j = 0; j < s.length; j++) u[j] = s.charCodeAt(j) & 255; return u; }
+    var chunks = [], offs = [], pos = 0;
+    function push(u) { chunks.push(u); pos += u.length; }
+    function obj(n, body) { offs[n] = pos; push(enc(n + " 0 obj\n" + body + "\nendobj\n")); }
+    push(enc("%PDF-1.4\n"));
+    obj(1, "<< /Type /Catalog /Pages 2 0 R >>");
+    obj(2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
+    obj(3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 " + wPt + " " + hPt + "] /Contents 4 0 R /Resources << /XObject << /Im0 5 0 R >> >> >>");
+    var cs = "q " + wPt + " 0 0 " + hPt + " 0 0 cm /Im0 Do Q";
+    obj(4, "<< /Length " + cs.length + " >>\nstream\n" + cs + "\nendstream");
+    offs[5] = pos;
+    push(enc("5 0 obj\n<< /Type /XObject /Subtype /Image /Width " + wPx + " /Height " + hPx + " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " + img.length + " >>\nstream\n"));
+    push(img);
+    push(enc("\nendstream\nendobj\n"));
+    var xref = pos, t = "xref\n0 6\n0000000000 65535 f \n";
+    for (var n = 1; n <= 5; n++) t += ("0000000000" + offs[n]).slice(-10) + " 00000 n \n";
+    t += "trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n" + xref + "\n%%EOF";
+    push(enc(t));
+    var total = 0; chunks.forEach(function (u) { total += u.length; });
+    var out = new Uint8Array(total), p = 0;
+    chunks.forEach(function (u) { out.set(u, p); p += u.length; });
+    var url = URL.createObjectURL(new Blob([out], { type: "application/pdf" }));
+    var el = document.createElement("a");
+    el.href = url; el.download = name;
+    document.body.appendChild(el); el.click();
+    setTimeout(function () { el.remove(); URL.revokeObjectURL(url); }, 4000);
+  }
   function renderReceiptCard(a) {
     var card = document.createElement("div");
     card.className = "tcard";
@@ -540,8 +710,9 @@
       + cardRow("الرقم المرجعي", '<span class="v" style="direction:ltr">' + esc(a.ref || "") + '</span>')
       + cardRow("التاريخ", '<span class="v">' + esc(when) + '</span>')
       + '<div class="r big"><span class="k">المبلغ</span><span class="v">' + fmt(a.amount) + '<span class="c">ر.س</span></span></div>'
-      + '<div class="confirm"><button class="btn share">' + ICON_SHARE + 'مشاركة الإيصال</button></div>';
+      + '<div class="confirm"><button class="btn share">' + ICON_SHARE + 'مشاركة</button><button class="btn pdf">' + ICON_DOWNLOAD + 'حفظ PDF</button></div>';
     log.appendChild(card); scrollChat();
+    q(".btn.pdf", card).onclick = function () { receiptPdf(a, when); };
     var sb = q(".btn.share", card);
     sb.onclick = function () {
       var text = "إيصال تحويل — ثَروة\nالمبلغ: " + fmt(a.amount) + " ر.س\nالمستفيد: " + a.recipient

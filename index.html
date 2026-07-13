@@ -116,6 +116,35 @@
 #s-chat .mic svg{width:21px;height:21px}
 #s-chat .send{background:var(--coral2);color:#fff}
 #s-chat .send svg{width:21px;height:21px}
+#s-chat .btn.pdf{background:var(--surface2);color:var(--text);flex:1}
+#s-chat .btn.pdf svg{width:17px;height:17px}
+/* ---- simulated SMS notification (OTP) ---- */
+.smsnotif{position:absolute;top:54px;left:12px;right:12px;z-index:80;display:flex;gap:11px;align-items:flex-start;background:rgba(20,38,54,.94);border:1px solid rgba(255,255,255,.13);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-radius:18px;padding:12px 14px;box-shadow:0 14px 34px rgba(0,0,0,.5);transform:translateY(-140%);animation:snIn .6s cubic-bezier(.2,.9,.3,1.12) forwards;cursor:pointer}
+.smsnotif.hide{animation:snOut .4s ease forwards}
+@keyframes snIn{to{transform:translateY(0)}}
+@keyframes snOut{from{transform:translateY(0)}to{transform:translateY(-150%);opacity:0}}
+.smsnotif .snic{width:36px;height:36px;border-radius:10px;background:var(--green);display:flex;align-items:center;justify-content:center;flex:none}
+.smsnotif .snic svg{width:20px;height:20px;stroke:#04231a;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.smsnotif .snb{flex:1;min-width:0}
+.smsnotif .snt{display:flex;justify-content:space-between;font-size:13px;font-weight:800;color:#fff}
+.smsnotif .snt span{color:var(--muted);font-weight:600;font-size:11px}
+.smsnotif .snm{font-size:13px;color:#CBD9E2;margin-top:2px;line-height:1.55}
+.smsnotif .snm b{color:var(--coral);font-size:16px;letter-spacing:3px;direction:ltr;display:inline-block}
+/* ---- OTP entry ---- */
+.otpwrap{margin-top:12px;border-top:1px dashed var(--line);padding-top:12px}
+.otpt{font-size:12.8px;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:7px}
+.otpt svg{width:15px;height:15px;flex:none;stroke:var(--coral);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.otpboxes{direction:ltr;display:flex;gap:9px;justify-content:center;margin-bottom:11px}
+.otpboxes input{width:50px;height:56px;border-radius:13px;border:1.5px solid rgba(255,255,255,.14);background:var(--surface2);color:#fff;font:800 22px Tajawal,sans-serif;text-align:center;outline:none;transition:border-color .18s,box-shadow .18s;caret-color:var(--coral2)}
+.otpboxes input:focus{border-color:var(--coral2);box-shadow:0 0 0 3px rgba(236,124,90,.16)}
+.otpboxes input.full{border-color:var(--green)}
+.otpboxes.err input{border-color:var(--red);animation:otpshake .35s}
+@keyframes otpshake{20%{transform:translateX(5px)}45%{transform:translateX(-5px)}70%{transform:translateX(3px)}90%{transform:translateX(-2px)}}
+.otprow{display:flex;justify-content:space-between;align-items:center;font-size:12.2px;color:var(--muted)}
+.otprow a{color:var(--coral);font-weight:800;cursor:pointer}
+.otprow a.off{color:var(--muted);pointer-events:none;font-weight:600}
+.otpok{display:flex;align-items:center;gap:8px;color:var(--green);font-weight:800;font-size:13.5px}
+.otpok svg{width:18px;height:18px}
 #s-spend 500;700;800;900&display=swap');
 :root{--bg:#0B1E2C;--surface:#13293A;--surface2:#1B3346;--coral:#F1A184;--coral2:#EC7C5A;--text:#ECF2F6;--muted:#7E93A2;--line:rgba(255,255,255,.07);--green:#37C98C;--c1:#EC7C5A;--c2:#4E86A8;--c3:#37C98C;--c4:#E2A93B;--c5:#9B82B6}
 #s-spend .app{padding:60px 22px 0}

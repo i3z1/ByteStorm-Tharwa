@@ -293,7 +293,7 @@ function doAddBen(args, s, actions) {
   const b = { name, bank, iban };
   s.beneficiaries.push(b);
   actions.push({ type: "beneficiary", name, bank, iban });
-  return { ok: true, note: `تمت إضافة ${name} — ${bank} — آيبان ${iban} — بنجاح. الآن تقدر تحوّل له مباشرة.` };
+  return { ok: true, note: `تم تجهيز إضافة ${name} — ${bank} — آيبان ${iban}. أُرسل رمز تحقق لجوال العميل وظهرت له بطاقة المستفيد — اطلب منه إدخال الرمز في البطاقة لإتمام الإضافة. لا تقل إن الإضافة اكتملت بعد.` };
 }
 
 function doInvest(args, s, actions) {
@@ -574,7 +574,7 @@ export default async function handler(req, res) {
     const last = actions[actions.length - 1];
     if (!last) return "";
     if (last.type === "confirm") return "جهّزت لك بطاقة التأكيد — راجع التفاصيل واضغط «تأكيد التحويل».";
-    if (last.type === "beneficiary") return `تمت إضافة ${last.name} إلى مستفيديك — تقدر تحوّل له مباشرة.`;
+    if (last.type === "beneficiary") return `أرسلت رمز تحقق لجوالك — أدخله في البطاقة لإتمام إضافة ${last.name}.`;
     if (last.type === "invest_plan") return `جهّزت لك الخطة: ${last.monthly} ر.س شهرياً بمستوى «${last.risk}» — افتح شاشة الاستثمار وشوف التفاصيل.`;
     if (last.type === "budget") return `تم ضبط ميزانية ${last.category} عند ${last.amount} ر.س شهرياً — تشوفها في شاشة التحليل.`;
     if (last.type === "zakat") return `زكاتك التقديرية ${last.amount} ر.س (2.5% من رصيدك الحالي).`;
