@@ -109,6 +109,14 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
 .otpok{display:flex;align-items:center;justify-content:center;gap:7px;color:var(--green);font-weight:800;font-size:11.5px;margin-top:10px}
 .otpok svg{width:15px;height:15px}
 .otpt2{font-size:10.5px;color:var(--muted);margin-top:11px;text-align:center}
+.otpsend{display:flex;align-items:center;justify-content:center;gap:8px;color:var(--muted);font-size:11px;font-weight:700;padding:11px 4px}
+.spin{width:13px;height:13px;border-radius:50%;border:2px solid rgba(255,255,255,.14);border-top-color:var(--coral2);animation:spinrot .75s linear infinite;flex:none}
+@keyframes spinrot{to{transform:rotate(360deg)}}
+.smsin .snfill{margin-top:4px;font-size:9.5px;font-weight:800;color:var(--green);display:flex;align-items:center;gap:4px;opacity:0}
+.smsin .snfill.show{animation:fadeup .45s ease forwards}
+@keyframes fadeup{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.smsin .snfill::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--green);animation:snblink 1.2s infinite;flex:none}
+@keyframes snblink{50%{opacity:.25}}
 .btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:11px 8px;border-radius:12px;font-weight:800;font-size:12.5px;border:none;font-family:inherit;white-space:nowrap}
 .btn svg{width:14px;height:14px;flex:none}
 .btn.ok{background:var(--green);color:#04231a;flex:2;transition:transform .12s}
@@ -400,22 +408,31 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
       + '<div class="r" style="color:var(--muted);font-size:10.5px">تقدير توعوي — يفترض حولان الحول وبلوغ النصاب</div>';
     log.appendChild(c); sc();
   }
-  // OTP moment: SMS drops into the card, digits fill one by one, then verified
+  // OTP moment paced like a real bank: sending… → SMS pops in → autofill hint
+  // appears → digits fill one by one → verified → executed
   async function otpMoment(card) {
     card.querySelector('.confirm').outerHTML =
       '<div class="otpt2">أدخل رمز التحقق المرسل إلى جوالك ‎05x xxx xx42</div>'
-      + '<div class="smsin"><div class="snic">' + ICON_MSG + '</div><div class="snb"><div class="snt">ثروة — رسالة نصية<span>الآن</span></div><div class="snm">رمز التحقق: <b>4832</b></div></div></div>'
+      + '<div class="smsslot"><div class="otpsend"><span class="spin"></span>جاري إرسال رمز التحقق إلى جوالك…</div></div>'
       + '<div class="otpboxes"><div class="ob"></div><div class="ob"></div><div class="ob"></div><div class="ob"></div></div>';
     sc();
-    await sleep(1900);
+    await sleep(2100);
+    card.querySelector('.smsslot').innerHTML =
+      '<div class="smsin"><div class="snic">' + ICON_MSG + '</div><div class="snb"><div class="snt">ثروة — رسالة نصية<span>الآن</span></div>'
+      + '<div class="snm">رمز التحقق: <b>4832</b></div>'
+      + '<div class="snfill">اضغط على الرسالة لتعبئة الرمز تلقائياً</div></div></div>';
+    sc();
+    await sleep(1400);
+    card.querySelector('.snfill').classList.add('show');
+    await sleep(1600);
     var obs = card.querySelectorAll('.otpboxes .ob'), code = '4832';
-    for (var i = 0; i < 4; i++) { obs[i].textContent = code[i]; obs[i].classList.add('full'); await sleep(400); }
-    await sleep(650);
+    for (var i = 0; i < 4; i++) { obs[i].textContent = code[i]; obs[i].classList.add('full'); await sleep(430); }
+    await sleep(700);
     card.querySelector('.otpt2').remove();
-    card.querySelector('.smsin').remove();
+    card.querySelector('.smsslot').remove();
     card.querySelector('.otpboxes').outerHTML = '<div class="otpok">' + ICON_OK + 'تم التحقق من الرمز</div>';
     sc();
-    await sleep(1000);
+    await sleep(1100);
     card.querySelector('.otpok').outerHTML = '<div class="r"><span class="k">الحالة</span><span class="v" style="color:var(--green)">تم التنفيذ</span></div>';
     sc();
   }

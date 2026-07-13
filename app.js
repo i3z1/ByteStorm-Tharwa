@@ -413,23 +413,38 @@
   function otpGate(mount, onOk) {
     var code = String(Math.floor(1000 + Math.random() * 9000));
     mount.innerHTML = '<div class="otpwrap"><div class="otpt">' + ICON_LOCK + 'أدخل رمز التحقق المرسل إلى جوالك ‎05x xxx xx42</div>'
-      + '<div class="smsin"><div class="snic">' + ICON_MSG + '</div><div class="snb"><div class="snt">ثروة — رسالة نصية<span>الآن</span></div>'
-      + '<div class="snm">رمز التحقق: <b>' + code + '</b></div>'
-      + '<div class="snfill">اضغط على الرسالة لتعبئة الرمز تلقائياً</div></div></div>'
+      + '<div class="smsslot"></div>'
       + '<div class="otpboxes">'
       + '<input type="tel" inputmode="numeric" maxlength="1" autocomplete="one-time-code"><input type="tel" inputmode="numeric" maxlength="1">'
       + '<input type="tel" inputmode="numeric" maxlength="1"><input type="tel" inputmode="numeric" maxlength="1">'
       + '</div><div class="otprow"><span>ما وصلك الرمز؟</span><a>إعادة إرسال</a></div></div>';
     var boxes = Array.prototype.slice.call(mount.querySelectorAll(".otpboxes input"));
     var wrap = q(".otpboxes", mount);
-    var sms = q(".smsin", mount);
+    var slot = q(".smsslot", mount);
     function fill(c) {
       String(c).split("").forEach(function (d, j) {
         if (boxes[j]) { boxes[j].value = d; boxes[j].classList.add("full"); }
       });
       verify();
     }
-    sms.onclick = function () { fill(code); };
+    // realistic pacing: a "sending…" beat, then the SMS pops in, and the
+    // autofill hint surfaces a moment later — like iOS SMS suggestions
+    function deliverSms() {
+      slot.innerHTML = '<div class="otpsend"><span class="spin"></span>جاري إرسال رمز التحقق إلى جوالك…</div>';
+      scrollChat();
+      setTimeout(function () {
+        if (!slot.parentNode) return;
+        slot.innerHTML = '<div class="smsin"><div class="snic">' + ICON_MSG + '</div><div class="snb"><div class="snt">ثروة — رسالة نصية<span>الآن</span></div>'
+          + '<div class="snm">رمز التحقق: <b>' + code + '</b></div>'
+          + '<div class="snfill">اضغط على الرسالة لتعبئة الرمز تلقائياً</div></div></div>';
+        q(".smsin", slot).onclick = function () { fill(code); };
+        scrollChat();
+        setTimeout(function () {
+          var f = q(".snfill", slot); if (f) f.classList.add("show");
+        }, 1500);
+      }, 1800);
+    }
+    deliverSms();
     scrollChat();
     function verify() {
       var v = boxes.map(function (b) { return b.value; }).join("");
@@ -468,8 +483,7 @@
     q(".otprow a", mount).onclick = function () {
       code = String(Math.floor(1000 + Math.random() * 9000));
       boxes.forEach(function (b) { b.value = ""; b.classList.remove("full"); });
-      q(".snm b", sms).textContent = code;
-      sms.classList.remove("pop"); void sms.offsetWidth; sms.classList.add("pop");
+      deliverSms();
     };
     boxes[0].focus();
   }
