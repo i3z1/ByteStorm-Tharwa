@@ -93,6 +93,22 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
 @keyframes warnpulse{0%,100%{box-shadow:0 0 0 0 rgba(226,169,59,.0)}50%{box-shadow:0 0 0 6px rgba(226,169,59,.12)}}
 .warnrow svg{width:15px;height:15px;flex:none;margin-top:1px}
 .confirm{margin-top:12px;display:flex;gap:8px}
+/* ---- OTP scene (simulated SMS + code boxes) ---- */
+.smsin{display:flex;gap:9px;align-items:flex-start;background:rgba(20,40,58,.92);border:1px solid rgba(255,255,255,.13);border-radius:13px;padding:9px 11px;margin-top:11px;animation:snPop .55s cubic-bezier(.2,.9,.3,1.15)}
+@keyframes snPop{from{transform:translateY(-12px);opacity:0}to{transform:translateY(0);opacity:1}}
+.smsin .snic{width:30px;height:30px;border-radius:9px;background:var(--green);display:flex;align-items:center;justify-content:center;flex:none}
+.smsin .snic svg{width:16px;height:16px;stroke:#04231a;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.smsin .snt{display:flex;justify-content:space-between;font-size:11px;font-weight:800;color:#fff}
+.smsin .snt span{color:var(--muted);font-weight:600;font-size:9.5px}
+.smsin .snm{font-size:11px;color:#CBD9E2;margin-top:1px}
+.smsin .snm b{color:var(--coral);font-size:14.5px;letter-spacing:2.5px;direction:ltr;display:inline-block}
+.smsin .snb{flex:1}
+.otpboxes{direction:ltr;display:flex;gap:7px;justify-content:center;margin-top:10px}
+.otpboxes .ob{width:36px;height:42px;border-radius:10px;border:1.5px solid rgba(255,255,255,.14);background:var(--surface2);color:#fff;font:800 17px Tajawal;display:flex;align-items:center;justify-content:center;transition:border-color .2s}
+.otpboxes .ob.full{border-color:var(--green)}
+.otpok{display:flex;align-items:center;justify-content:center;gap:7px;color:var(--green);font-weight:800;font-size:11.5px;margin-top:10px}
+.otpok svg{width:15px;height:15px}
+.otpt2{font-size:10.5px;color:var(--muted);margin-top:11px;text-align:center}
 .btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:11px 8px;border-radius:12px;font-weight:800;font-size:12.5px;border:none;font-family:inherit;white-space:nowrap}
 .btn svg{width:14px;height:14px;flex:none}
 .btn.ok{background:var(--green);color:#04231a;flex:2;transition:transform .12s}
@@ -260,6 +276,7 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
 
   var ICON_TR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2.5 21 6.5l-4 4"/><path d="M3 11V9.5a2 2 0 0 1 2-2h16"/><path d="M7 21.5 3 17.5l4-4"/><path d="M21 13v1.5a2 2 0 0 1-2 2H3"/></svg>';
   var ICON_OK = '<svg viewBox="0 0 24 24" fill="none" stroke="#37C98C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m8 12 2.5 2.5L16 9"/></svg>';
+  var ICON_MSG = '<svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z"/></svg>';
   var ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
   var ICON_SHIELD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-3.6 8-10V5.5L12 2 4 5.5V12c0 6.4 8 10 8 10Z"/><path d="M12 8v4"/><path d="M12 15.5h.01"/></svg>';
   var ICON_COINS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7.5" ry="3"/><path d="M4.5 6v5c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3V6"/><path d="M4.5 11v5c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-5"/></svg>';
@@ -383,6 +400,25 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
       + '<div class="r" style="color:var(--muted);font-size:10.5px">تقدير توعوي — يفترض حولان الحول وبلوغ النصاب</div>';
     log.appendChild(c); sc();
   }
+  // OTP moment: SMS drops into the card, digits fill one by one, then verified
+  async function otpMoment(card) {
+    card.querySelector('.confirm').outerHTML =
+      '<div class="otpt2">أدخل رمز التحقق المرسل إلى جوالك ‎05x xxx xx42</div>'
+      + '<div class="smsin"><div class="snic">' + ICON_MSG + '</div><div class="snb"><div class="snt">ثروة — رسالة نصية<span>الآن</span></div><div class="snm">رمز التحقق: <b>4832</b></div></div></div>'
+      + '<div class="otpboxes"><div class="ob"></div><div class="ob"></div><div class="ob"></div><div class="ob"></div></div>';
+    sc();
+    await sleep(1900);
+    var obs = card.querySelectorAll('.otpboxes .ob'), code = '4832';
+    for (var i = 0; i < 4; i++) { obs[i].textContent = code[i]; obs[i].classList.add('full'); await sleep(400); }
+    await sleep(650);
+    card.querySelector('.otpt2').remove();
+    card.querySelector('.smsin').remove();
+    card.querySelector('.otpboxes').outerHTML = '<div class="otpok">' + ICON_OK + 'تم التحقق من الرمز</div>';
+    sc();
+    await sleep(1000);
+    card.querySelector('.otpok').outerHTML = '<div class="r"><span class="k">الحالة</span><span class="v" style="color:var(--green)">تم التنفيذ</span></div>';
+    sc();
+  }
   async function countBalance(from, to, ms) {
     var el = q('#balv'), t0 = Date.now();
     return new Promise(function (res) {
@@ -416,7 +452,7 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
 
     // ---- scene 1: transfer ----
     dot(1);
-    await caption('تكلّم بلغتك… <span class="hl">وثَروة ينفّذ</span>', 'أوامر بنكية بالمحادثة — بدون قوائم ولا خطوات');
+    await caption('تكلّم بلغتك… <span class="hl">وثَروة ينفّذ</span>', 'أوامر بالمحادثة — وتنفيذ آمن برمز تحقق، مثل بنكك تماماً');
     await sleep(700); page('p-chat');
     await sleep(500);
     await typeIn('حوّل ٥٠٠ لأحمد');
@@ -430,7 +466,7 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     await tap(ok);
     ok.classList.add('press'); await sleep(220); ok.classList.remove('press');
     await sleep(400);
-    card.querySelector('.confirm').outerHTML = '<div class="r"><span class="k">الحالة</span><span class="v" style="color:var(--green)">تم التنفيذ</span></div>';
+    await otpMoment(card);
     await sleep(700);
     successB('تم تحويل 500.00 ر.س إلى أحمد العتيبي بنجاح.');
     await sleep(1500);

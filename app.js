@@ -407,36 +407,35 @@
   // ---------------- OTP SIMULATION (fake SMS + code entry) ----------------
   var ICON_MSG = '<svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z"/></svg>';
   var ICON_LOCK = '<svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
-  function showSmsNotif(code) {
-    var page = q("#s-chat");
-    var old = q(".smsnotif", page); if (old) old.remove();
-    var n = document.createElement("div");
-    n.className = "smsnotif";
-    n.innerHTML = '<div class="snic">' + ICON_MSG + '</div><div class="snb"><div class="snt">ثروة — رسالة نصية<span>الآن</span></div>'
-      + '<div class="snm">رمز التحقق: <b>' + code + '</b> — لا تشارك الرمز مع أي أحد.</div></div>';
-    n.onclick = function () { n.classList.add("hide"); setTimeout(function () { n.remove(); }, 450); };
-    page.appendChild(n);
-    setTimeout(function () {
-      if (n.parentNode) { n.classList.add("hide"); setTimeout(function () { n.remove(); }, 450); }
-    }, 8000);
-  }
+  // the fake SMS lives INSIDE the card, right above the code boxes — the browser
+  // always keeps the focused input (and therefore the code) on screen, so the
+  // keyboard can never hide it. Tapping it auto-fills, like iOS SMS AutoFill.
   function otpGate(mount, onOk) {
     var code = String(Math.floor(1000 + Math.random() * 9000));
     mount.innerHTML = '<div class="otpwrap"><div class="otpt">' + ICON_LOCK + 'أدخل رمز التحقق المرسل إلى جوالك ‎05x xxx xx42</div>'
+      + '<div class="smsin"><div class="snic">' + ICON_MSG + '</div><div class="snb"><div class="snt">ثروة — رسالة نصية<span>الآن</span></div>'
+      + '<div class="snm">رمز التحقق: <b>' + code + '</b></div>'
+      + '<div class="snfill">اضغط على الرسالة لتعبئة الرمز تلقائياً</div></div></div>'
       + '<div class="otpboxes">'
       + '<input type="tel" inputmode="numeric" maxlength="1" autocomplete="one-time-code"><input type="tel" inputmode="numeric" maxlength="1">'
       + '<input type="tel" inputmode="numeric" maxlength="1"><input type="tel" inputmode="numeric" maxlength="1">'
       + '</div><div class="otprow"><span>ما وصلك الرمز؟</span><a>إعادة إرسال</a></div></div>';
     var boxes = Array.prototype.slice.call(mount.querySelectorAll(".otpboxes input"));
     var wrap = q(".otpboxes", mount);
-    showSmsNotif(code);
+    var sms = q(".smsin", mount);
+    function fill(c) {
+      String(c).split("").forEach(function (d, j) {
+        if (boxes[j]) { boxes[j].value = d; boxes[j].classList.add("full"); }
+      });
+      verify();
+    }
+    sms.onclick = function () { fill(code); };
     scrollChat();
     function verify() {
       var v = boxes.map(function (b) { return b.value; }).join("");
       if (v.length < 4) return;
       if (v === code) {
         mount.innerHTML = '<div class="otpwrap" style="border-top:none;padding-top:2px"><div class="otpok">' + ICON_CHECK + 'تم التحقق من الرمز</div></div>';
-        var sn = q(".smsnotif", q("#s-chat")); if (sn) sn.remove();
         onOk();
       } else {
         wrap.classList.add("err");
@@ -469,8 +468,8 @@
     q(".otprow a", mount).onclick = function () {
       code = String(Math.floor(1000 + Math.random() * 9000));
       boxes.forEach(function (b) { b.value = ""; b.classList.remove("full"); });
-      boxes[0].focus();
-      showSmsNotif(code);
+      q(".snm b", sms).textContent = code;
+      sms.classList.remove("pop"); void sms.offsetWidth; sms.classList.add("pop");
     };
     boxes[0].focus();
   }

@@ -118,18 +118,20 @@
 #s-chat .send svg{width:21px;height:21px}
 #s-chat .btn.pdf{background:var(--surface2);color:var(--text);flex:1}
 #s-chat .btn.pdf svg{width:17px;height:17px}
-/* ---- simulated SMS notification (OTP) ---- */
-.smsnotif{position:absolute;top:54px;left:12px;right:12px;z-index:80;display:flex;gap:11px;align-items:flex-start;background:rgba(20,38,54,.94);border:1px solid rgba(255,255,255,.13);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-radius:18px;padding:12px 14px;box-shadow:0 14px 34px rgba(0,0,0,.5);transform:translateY(-140%);animation:snIn .6s cubic-bezier(.2,.9,.3,1.12) forwards;cursor:pointer}
-.smsnotif.hide{animation:snOut .4s ease forwards}
-@keyframes snIn{to{transform:translateY(0)}}
-@keyframes snOut{from{transform:translateY(0)}to{transform:translateY(-150%);opacity:0}}
-.smsnotif .snic{width:36px;height:36px;border-radius:10px;background:var(--green);display:flex;align-items:center;justify-content:center;flex:none}
-.smsnotif .snic svg{width:20px;height:20px;stroke:#04231a;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.smsnotif .snb{flex:1;min-width:0}
-.smsnotif .snt{display:flex;justify-content:space-between;font-size:13px;font-weight:800;color:#fff}
-.smsnotif .snt span{color:var(--muted);font-weight:600;font-size:11px}
-.smsnotif .snm{font-size:13px;color:#CBD9E2;margin-top:2px;line-height:1.55}
-.smsnotif .snm b{color:var(--coral);font-size:16px;letter-spacing:3px;direction:ltr;display:inline-block}
+/* ---- simulated SMS message — inline inside the OTP card (keyboard can't hide it) ---- */
+.smsin{display:flex;gap:11px;align-items:flex-start;background:rgba(20,40,58,.9);border:1px solid rgba(255,255,255,.13);border-radius:15px;padding:11px 13px;margin-bottom:12px;cursor:pointer;animation:snPop .5s cubic-bezier(.2,.9,.3,1.15)}
+.smsin.pop{animation:snPop .5s cubic-bezier(.2,.9,.3,1.15)}
+@keyframes snPop{from{transform:translateY(-14px);opacity:0}to{transform:translateY(0);opacity:1}}
+.smsin .snic{width:36px;height:36px;border-radius:10px;background:var(--green);display:flex;align-items:center;justify-content:center;flex:none}
+.smsin .snic svg{width:20px;height:20px;stroke:#04231a;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.smsin .snb{flex:1;min-width:0}
+.smsin .snt{display:flex;justify-content:space-between;font-size:12.8px;font-weight:800;color:#fff}
+.smsin .snt span{color:var(--muted);font-weight:600;font-size:11px}
+.smsin .snm{font-size:13px;color:#CBD9E2;margin-top:2px;line-height:1.5}
+.smsin .snm b{color:var(--coral);font-size:18px;letter-spacing:3px;direction:ltr;display:inline-block}
+.smsin .snfill{margin-top:5px;font-size:11.5px;font-weight:800;color:var(--green);display:flex;align-items:center;gap:5px}
+.smsin .snfill::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--green);animation:snblink 1.2s infinite;flex:none}
+@keyframes snblink{50%{opacity:.25}}
 /* ---- OTP entry ---- */
 .otpwrap{margin-top:12px;border-top:1px dashed var(--line);padding-top:12px}
 .otpt{font-size:12.8px;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:7px}
