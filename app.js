@@ -820,8 +820,8 @@
       + cardRow("الرسوم", '<span class="v" style="font-size:12px">' + esc(c.fees) + '</span>')
       + (c.shariah ? cardRow("التوافق", '<span class="v" style="font-size:12px;color:var(--green)">متوافقة مع الشريعة</span>') : "")
       + (c.issued
-          ? '<div class="confirm"><button class="btn ok" disabled>' + ICON_CHECK + 'بطاقتك صادرة بالفعل</button></div>'
-          : '<div class="confirm"><button class="btn ok issue-card">' + ICON_CHECK + 'أصدرها</button><button class="btn no more-cards">ما عجبتني — اعرض غيرها</button></div>')
+          ? '<div class="confirm cardbtns"><button class="btn ok" disabled>' + ICON_CHECK + 'بطاقتك صادرة بالفعل</button></div>'
+          : '<div class="confirm cardbtns"><button class="btn ok issue-card">' + ICON_CHECK + 'أصدرها</button><button class="btn no more-cards">اعرض غيرها</button></div>')
       + '<div class="r" style="color:var(--muted);font-size:12.5px">الترشيح مبني على نمط صرفك الفعلي — وليس موافقة ائتمانية نهائية.</div>';
     log.appendChild(card); scrollChat();
     var ib = q(".issue-card", card);
