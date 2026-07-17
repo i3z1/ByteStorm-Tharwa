@@ -40,7 +40,7 @@ There is no framework or build system. The app is mostly plain HTML/CSS/JavaScri
 
 ## Current product behavior
 
-- The AI chat executes simulated banking tools with confirmation before sensitive actions. Transfers require a confirm card **plus an OTP moment**; `execute_transfer` refuses server-side without a pending confirmed proposal (prompt-injection resistant).
+- The AI chat executes simulated banking tools with confirmation before sensitive actions. Transfers execute **ONLY via the deterministic confirm-button route (body.confirm) with its OTP moment**; `doExecute` refuses ALL model-initiated calls unconditionally — a typed "أكد/حوّل الآن" redirects to the button and can never skip OTP (prompt-injection immune, live-verified).
 - Savings ("ادخار") is a **Shariah-compliant murabaha account at a flat ~4% expected annual return** (`SAVE_RATE`). There are NO risk tiers, no stocks/gold/portfolio — the word "استثمار" was deliberately removed from all user-facing copy.
 - Financing: `financing_estimate` computes a murabaha personal-financing estimate (~6% reducing, `FIN_RATE`) from the customer's real income/expenses, capped by 33% DSR (`FIN_DSR`) AND monthly surplus. Applying formally opens a support ticket (bank-human action).
 - Support tickets (`create_support_ticket`) are STRICTLY for requests only a human banker can fulfill (formal financing application, account open/close, complex complaints). Never for questions the assistant can answer or for card recommendation/issuance.
