@@ -283,7 +283,23 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
 (function () {
   "use strict";
   var q = function (s) { return document.querySelector(s); };
-  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  // interruptible sleep: arrow keys cancel every pending wait, so the current
+  // scene aborts instantly (a {skip:true} throw) and the runner jumps scenes
+  var gen = 0, waiters = [];
+  function skipAll() {
+    gen++;
+    var w = waiters.splice(0);
+    for (var i = 0; i < w.length; i++) { try { w[i](); } catch (e) {} }
+  }
+  function sleep(ms) {
+    return new Promise(function (r) {
+      var g = gen;
+      var t = setTimeout(function () { unreg(); r(g === gen); }, ms);
+      function cancel() { clearTimeout(t); r(false); }
+      function unreg() { var ix = waiters.indexOf(cancel); if (ix > -1) waiters.splice(ix, 1); }
+      waiters.push(cancel);
+    }).then(function (alive) { if (!alive) throw { skip: true }; });
+  }
 
   var ICON_TR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2.5 21 6.5l-4 4"/><path d="M3 11V9.5a2 2 0 0 1 2-2h16"/><path d="M7 21.5 3 17.5l4-4"/><path d="M21 13v1.5a2 2 0 0 1-2 2H3"/></svg>';
   var ICON_OK = '<svg viewBox="0 0 24 24" fill="none" stroke="#37C98C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m8 12 2.5 2.5L16 9"/></svg>';
@@ -466,41 +482,51 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     sc();
   }
   async function countBalance(from, to, ms) {
-    var el = q('#balv'), t0 = Date.now();
-    return new Promise(function (res) {
+    var el = q('#balv'), t0 = Date.now(), g = gen;
+    await new Promise(function (res) {
       var iv = setInterval(function () {
+        if (g !== gen) { clearInterval(iv); res(); return; }
         var p = Math.min(1, (Date.now() - t0) / ms), e = 1 - Math.pow(1 - p, 3);
         var v = Math.round(from + (to - from) * e);
         el.innerHTML = v.toLocaleString('en-US') + '<span class="c">.00 ر.س</span>';
         if (p >= 1) { clearInterval(iv); res(); }
       }, 40);
     });
+    if (g !== gen) throw { skip: true };
   }
 
-  async function run() {
-    // intro fades in first, then everything resets behind it
-    q('#intro').classList.add('on');
-    await sleep(750);
-    q('#outro').classList.remove('on');
-    log.innerHTML = ''; page('p-home'); dot(0);
-    q('#balv').innerHTML = '24,580<span class="c">.00 ر.س</span>';
-    q('#txns').innerHTML = TXNS_HTML;
-    q('#dc-mada').classList.remove('frozen');
+  // ---------------- SCENES — bank-value first; ← / → jump between scenes ----------------
+  function sceneReset() {
     q('#wave').classList.remove('on'); q('#mic').classList.remove('rec');
     inbox.innerHTML = '<span class="ph">اكتب أو اضغط المايك وتكلّم…</span>';
-    capB.className = 'big'; capS.className = 'sub'; capB.textContent = ''; capS.textContent = '';
-    document.querySelectorAll('#p-invest .fill').forEach(function (f) { f.style.width = '0'; });
-    q('#tracknote').classList.remove('show');
+  }
 
-    // ---- intro ----
-    await sleep(3400);
-    await hideOv(q('#intro'));
+  // 1) instant self-service: lost card freeze (bank: fewer calls, 3-second service)
+  async function sceneFreeze() {
+    page('p-chat'); log.innerHTML = '';
+    q('#dc-mada').classList.remove('frozen');
+    await caption('ضاعت بطاقتك؟ <span class="hl">جمّدها بثانية</span>', 'خدمة ذاتية فورية — بدون مركز اتصال ولا انتظار على الخط');
+    await sleep(600);
+    await typeIn('ضاعت بطاقة مدى!');
+    await pressSend(); userMsg('ضاعت بطاقة مدى!');
+    await think(1200);
+    cardLockCard();
+    await sleep(900);
+    botMsg('جمّدتها فوراً — <b>كل العمليات على مدى •••• 4821 مرفوضة من هذه اللحظة</b>. أطلب لك بديلة؟ توصلك خلال <b>3-5 أيام عمل</b>، وإذا لقيتها أفكّ التجميد بلحظة.');
+    await sleep(2300);
+    page('p-home');
+    await sleep(700);
+    q('#dc-mada').classList.add('frozen');
+    await sleep(2800);
+  }
 
-    // ---- scene 1: transfer ----
-    dot(1);
+  // 2) core execution: full transfer with OTP + receipt PDF
+  async function sceneTransfer() {
+    page('p-chat'); log.innerHTML = '';
+    q('#balv').innerHTML = '24,580<span class="c">.00 ر.س</span>';
+    q('#txns').innerHTML = TXNS_HTML;
     await caption('تكلّم بلغتك… <span class="hl">وثَروة ينفّذ</span>', 'أوامر بالمحادثة — وتنفيذ آمن برمز تحقق، مثل بنكك تماماً');
-    await sleep(700); page('p-chat');
-    await sleep(500);
+    await sleep(700);
     await typeIn('حوّل ٥٠٠ لأحمد العتيبي');
     await pressSend(); userMsg('حوّل ٥٠٠ لأحمد العتيبي');
     await think(1400);
@@ -528,7 +554,6 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     await tap(shb);
     shb.innerHTML = ICON_CHECK + 'تمت المشاركة';
     await sleep(1500);
-
     // balance drops on home
     page('p-home');
     await sleep(500);
@@ -539,11 +564,13 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     q('#txns').removeChild(q('#txns').lastElementChild); // keep 3 rows — cards row needs the space
     await countBalance(24580, 24080, 1400);
     await sleep(2300);
+  }
 
-    // ---- scene 2: fraud guard ----
-    dot(2);
+  // 3) fraud guard
+  async function sceneFraud() {
+    page('p-chat'); log.innerHTML = '';
     await caption('حماية ذكية <span class="hl">قبل أي عملية</span>', 'مبلغ غير معتاد؟ ثَروة ينبّهك قبل التأكيد');
-    await sleep(600); page('p-chat'); log.innerHTML = '';
+    await sleep(600);
     await typeIn('حوّل ٦٠٠٠ لأحمد');
     await pressSend(); userMsg('حوّل ٦٠٠٠ لأحمد');
     await think(1200);
@@ -551,75 +578,13 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     await sleep(800);
     confirmCard('6,000.00', true);
     await sleep(4600);
+  }
 
-    // ---- scene 3: lost card → instant freeze ----
-    dot(3);
-    await caption('ضاعت بطاقتك؟ <span class="hl">جمّدها بثانية</span>', 'خدمة ذاتية فورية — بدون مركز اتصال ولا انتظار على الخط');
-    await sleep(600); log.innerHTML = '';
-    await typeIn('ضاعت بطاقة مدى!');
-    await pressSend(); userMsg('ضاعت بطاقة مدى!');
-    await think(1200);
-    cardLockCard();
-    await sleep(900);
-    botMsg('جمّدتها فوراً — <b>كل العمليات على مدى •••• 4821 مرفوضة من هذه اللحظة</b>. أطلب لك بديلة؟ توصلك خلال <b>3-5 أيام عمل</b>، وإذا لقيتها أفكّ التجميد بلحظة.');
-    await sleep(2300);
-    page('p-home');
-    await sleep(700);
-    q('#dc-mada').classList.add('frozen');
-    await sleep(2800);
-
-    // ---- scene 4: add beneficiary ----
-    dot(4);
-    await caption('مستفيد جديد… <span class="hl">بالمحادثة</span>', 'ثَروة يجمع البيانات كاملة — ولا يخترع آيباناً أبداً');
-    await sleep(600); page('p-chat'); log.innerHTML = '';
-    await typeIn('أضف مستفيد اسمه خالد الدوسري');
-    await pressSend(); userMsg('أضف مستفيد اسمه خالد الدوسري');
-    await think(1300);
-    botMsg('أبشر. عطني <b>رقم الآيبان</b> (يبدأ بـ SA) و<b>اسم البنك</b> عشان أضيف خالد بأمان — ما أسجّل بيانات ناقصة.');
-    await sleep(1400);
-    await typeIn('SA71 2000 0000 8899 7766 5544 — بنك الرياض', 30);
-    await pressSend(); userMsg('SA71 2000 0000 8899 7766 5544 — بنك الرياض');
-    await think(1400);
-    benCard();
-    await sleep(800);
-    botMsg('تمت إضافة <b>خالد الدوسري — بنك الرياض</b>. تقدر تحوّل له مباشرة من الآن.');
-    await sleep(3400);
-
-    // ---- scene 5: zakat ----
-    dot(5);
-    await caption('زكاتك… <span class="hl">بلمسة</span>', '2.5% من رصيدك — ببطاقة واضحة وتنبيه شرعي');
-    await sleep(600);
-    log.innerHTML = '';
-    await typeIn('احسب زكاتي');
-    await pressSend(); userMsg('احسب زكاتي');
-    await think(1200);
-    zakatCard();
-    await sleep(900);
-    botMsg('زكاتك التقديرية <b>614.5 ر.س</b> — تقدير توعوي يفترض حولان الحول وبلوغ النصاب.');
-    await sleep(3600);
-
-    // ---- scene 6: goal investing ----
-    dot(6);
-    await caption('هدفك… <span class="hl">يصير خطة</span>', 'قسط شهري محسوب بعائد مرابحة مركّب — ومن فائضك الحقيقي');
-    await sleep(600);
-    log.innerHTML = '';
-    await typeIn('أبي أجمع ٣٠ ألف لسيارة خلال سنة');
-    await pressSend(); userMsg('أبي أجمع ٣٠ ألف لسيارة خلال سنة');
-    await think(1400);
-    botMsg('ضبطت لك الخطة: <b>2,500 ر.س شهرياً</b> في حساب ادخار مرابحة توصلك لهدفك خلال 12 شهراً — وهي ضمن فائضك الشهري.');
-    await sleep(1700);
-    page('p-invest');
-    await sleep(400);
-    document.querySelectorAll('#p-invest .fill').forEach(function (f) { f.style.width = f.dataset.w; });
-    await sleep(1300);
-    q('#tracknote').classList.add('show');
-    await sleep(3600);
-
-    // ---- scene 7: personal financing + smart handoff ----
-    dot(7);
+  // 4) personal financing + smart human handoff (bank: new revenue)
+  async function sceneFinance() {
+    page('p-chat'); log.innerHTML = '';
     await caption('حتى التمويل… <span class="hl">من أرقامك</span>', 'تقدير فوري من دخلك — والتقديم الرسمي بتذكرة لموظف');
     await sleep(600);
-    page('p-chat'); log.innerHTML = '';
     await typeIn('كم يطلع لي تمويل شخصي؟');
     await pressSend(); userMsg('كم يطلع لي تمويل شخصي؟');
     await think(1400);
@@ -634,11 +599,77 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     await sleep(900);
     botMsg('الذكاء يعرف حدوده: التقديم الرسمي يحتاج موظفاً — ففتحت لك <b>تذكرة موثّقة</b> وبيتواصلون معك خلال 4 ساعات عمل.');
     await sleep(3800);
+  }
 
-    // ---- scene 8: voice ----
-    dot(8);
+  // 5) why the bank adopts it (value numbers)
+  async function sceneValue() {
+    page('p-home');
+    await caption('للبنك: <span class="hl">رضا أعلى وتكاليف أقل</span>', '~80% من الاستفسارات متكررة — ثَروة يحلّها ذاتياً بدون موظف');
+    await sleep(4200);
+    await caption('المكالمة تكلّف <span class="hl">ريالات… والمحادثة هللات</span>', 'توفير ×10 لكل استفسار + خدمة ذاتية في 3 ثوانٍ = عميل أسعد بتكلفة أقل');
+    await sleep(4200);
+    await caption('يُدمج <span class="hl">داخل تطبيق البنك نفسه</span>', 'وحدة White-label بهوية البنك — تُركّب فوق أنظمته القائمة في أسابيع');
+    await sleep(4200);
+  }
+
+  // 6) add beneficiary
+  async function sceneBeneficiary() {
+    page('p-chat'); log.innerHTML = '';
+    await caption('مستفيد جديد… <span class="hl">بالمحادثة</span>', 'ثَروة يجمع البيانات كاملة — ولا يخترع آيباناً أبداً');
+    await sleep(600);
+    await typeIn('أضف مستفيد اسمه خالد الدوسري');
+    await pressSend(); userMsg('أضف مستفيد اسمه خالد الدوسري');
+    await think(1300);
+    botMsg('أبشر. عطني <b>رقم الآيبان</b> (يبدأ بـ SA) و<b>اسم البنك</b> عشان أضيف خالد بأمان — ما أسجّل بيانات ناقصة.');
+    await sleep(1400);
+    await typeIn('SA71 2000 0000 8899 7766 5544 — بنك الرياض', 30);
+    await pressSend(); userMsg('SA71 2000 0000 8899 7766 5544 — بنك الرياض');
+    await think(1400);
+    benCard();
+    await sleep(800);
+    botMsg('تمت إضافة <b>خالد الدوسري — بنك الرياض</b>. تقدر تحوّل له مباشرة من الآن.');
+    await sleep(3400);
+  }
+
+  // 7) zakat
+  async function sceneZakat() {
+    page('p-chat'); log.innerHTML = '';
+    await caption('زكاتك… <span class="hl">بلمسة</span>', '2.5% من رصيدك — ببطاقة واضحة وتنبيه شرعي');
+    await sleep(600);
+    await typeIn('احسب زكاتي');
+    await pressSend(); userMsg('احسب زكاتي');
+    await think(1200);
+    zakatCard();
+    await sleep(900);
+    botMsg('زكاتك التقديرية <b>614.5 ر.س</b> — تقدير توعوي يفترض حولان الحول وبلوغ النصاب.');
+    await sleep(3600);
+  }
+
+  // 8) goal saving (murabaha)
+  async function sceneSaving() {
+    page('p-chat'); log.innerHTML = '';
+    document.querySelectorAll('#p-invest .fill').forEach(function (f) { f.style.width = '0'; });
+    q('#tracknote').classList.remove('show');
+    await caption('هدفك… <span class="hl">يصير خطة</span>', 'قسط شهري محسوب بعائد مرابحة مركّب — ومن فائضك الحقيقي');
+    await sleep(600);
+    await typeIn('أبي أجمع ٣٠ ألف لسيارة خلال سنة');
+    await pressSend(); userMsg('أبي أجمع ٣٠ ألف لسيارة خلال سنة');
+    await think(1400);
+    botMsg('ضبطت لك الخطة: <b>2,500 ر.س شهرياً</b> في حساب ادخار مرابحة توصلك لهدفك خلال 12 شهراً — وهي ضمن فائضك الشهري.');
+    await sleep(1700);
+    page('p-invest');
+    await sleep(400);
+    document.querySelectorAll('#p-invest .fill').forEach(function (f) { f.style.width = f.dataset.w; });
+    await sleep(1300);
+    q('#tracknote').classList.add('show');
+    await sleep(3600);
+  }
+
+  // 9) voice
+  async function sceneVoice() {
+    page('p-chat'); log.innerHTML = '';
     await caption('بصوتك… <span class="hl">وبلهجتك</span>', 'شمول مالي حقيقي — لكبار السن وضعاف البصر');
-    await sleep(600); page('p-chat'); log.innerHTML = '';
+    await sleep(600);
     q('#mic').classList.add('rec'); q('#wave').classList.add('on');
     inbox.innerHTML = '<span class="ph">أسمعك… تكلّم الآن</span>';
     await sleep(1400);
@@ -648,20 +679,57 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     await think(1100);
     botMsg('صرفت هذا الشهر <b>2,247 ر.س</b> على المطاعم — 35% من مصروفاتك. تبيني أضبط لك ميزانية؟');
     await sleep(3800);
+  }
 
-    // ---- scene 9: why the bank adopts it (value) ----
-    dot(9);
-    page('p-home');
-    await caption('للبنك: <span class="hl">رضا أعلى وتكاليف أقل</span>', '~80% من الاستفسارات متكررة — ثَروة يحلّها ذاتياً بدون موظف');
-    await sleep(4200);
-    await caption('المكالمة تكلّف <span class="hl">ريالات… والمحادثة هللات</span>', 'توفير ×10 لكل استفسار + خدمة ذاتية في 3 ثوانٍ = عميل أسعد بتكلفة أقل');
-    await sleep(4200);
-    await caption('يُدمج <span class="hl">داخل تطبيق البنك نفسه</span>', 'وحدة White-label بهوية البنك — تُركّب فوق أنظمته القائمة في أسابيع');
-    await sleep(4200);
+  var SCENES = [sceneFreeze, sceneTransfer, sceneFraud, sceneFinance, sceneValue, sceneBeneficiary, sceneZakat, sceneSaving, sceneVoice];
+  var idx = 0;
+
+  // presenter navigation: in RTL, ← = next scene, → = previous.
+  // Space / PageDown (clickers) also advance; PageUp goes back.
+  document.addEventListener('keydown', function (e) {
+    var next = (e.key === 'ArrowLeft' || e.key === 'ArrowDown' || e.key === ' ' || e.key === 'PageDown');
+    var prev = (e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'PageUp');
+    if (!next && !prev) return;
+    e.preventDefault();
+    if (q('#intro').classList.contains('on')) { skipAll(); return; } // any key just skips the intro
+    if (next) idx = Math.min(SCENES.length, idx + 1);
+    else idx = Math.max(0, idx - 1);
+    skipAll();
+  });
+
+  async function run() {
+    // intro fades in first, then everything resets behind it
+    var intro = q('#intro');
+    intro.classList.add('on');
+    q('#outro').classList.remove('on');
+    log.innerHTML = ''; page('p-home'); dot(0);
+    q('#balv').innerHTML = '24,580<span class="c">.00 ر.س</span>';
+    q('#txns').innerHTML = TXNS_HTML;
+    q('#dc-mada').classList.remove('frozen');
+    sceneReset();
+    capB.className = 'big'; capS.className = 'sub'; capB.textContent = ''; capS.textContent = '';
+    document.querySelectorAll('#p-invest .fill').forEach(function (f) { f.style.width = '0'; });
+    q('#tracknote').classList.remove('show');
+    if (idx >= SCENES.length) idx = 0;
+
+    // ---- intro (skippable) ----
+    try { await sleep(3400); await hideOv(intro); }
+    catch (e) { if (!e || !e.skip) throw e; }
+    intro.classList.remove('on'); intro.style.opacity = ''; intro.style.transition = '';
+
+    // ---- scenes (arrow keys jump between them) ----
+    while (idx < SCENES.length) {
+      var cur = idx;
+      dot(cur + 1);
+      sceneReset();
+      try { await SCENES[cur](); idx = cur + 1; }
+      catch (e) { if (!e || !e.skip) throw e; }
+    }
 
     // ---- outro ----
     q('#outro').classList.add('on');
-    await sleep(6000);
+    try { await sleep(6000); idx = 0; }
+    catch (e) { if (!e || !e.skip) throw e; }
   }
 
   (async function loop() { while (true) { await run(); } })();
