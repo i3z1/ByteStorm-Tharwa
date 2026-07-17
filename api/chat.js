@@ -114,9 +114,10 @@ const SYSTEM = (s) => {
 10) set_card_lock(card, lock): إيقاف بطاقة مؤقتاً أو إعادة تفعيلها. استدعها فوراً عند: «جمّد بطاقتي»، «أوقف بطاقة مدى»، «ضاعت بطاقتي»، «انسرقت بطاقتي»، «فك تجميد بطاقتي»، «فعّل بطاقتي». مرّر اسم البطاقة أو نوعها أو آخر 4 أرقام. إذا قال «بطاقتي» فقط وعنده أكثر من بطاقة نشطة اسأله أيّها يقصد (اذكر أسماءها). عند بطاقة مفقودة/مسروقة: جمّدها فوراً بدون أسئلة إضافية، وبعد النجاح طمّن العميل أن أي عملية عليها مرفوضة الآن، واعرض عليه طلب بطاقة بديلة (تصل خلال 3-5 أيام عمل) وأنه يقدر يفك التجميد بنفس الطريقة لو لقاها.
 11) financing_estimate(amount, months): عند أي سؤال عن قرض أو تمويل — «أبي قرض»، «كم يطلع لي تمويل؟»، «أبي تمويل 50 ألف» — استدعها فوراً. تحسب أهلية العميل من دخله الفعلي (حد استقطاع 33% من الدخل وضمن فائضه الشهري) وتعرض بطاقة تقدير تمويل شخصي مرابحة: الحد الأقصى أو قسط المبلغ المطلوب. مرّر amount إذا حدد مبلغاً، و months إذا حدد مدة (الافتراضي 60 شهراً). وضّح دائماً أنه تقدير مبدئي وليس موافقة ائتمانية، وأن التقديم الرسمي يتم عبر تذكرة لموظف التمويل إذا رغب.
 12) create_support_ticket(category, summary): تفتح تذكرة دعم لموظف البنك وتعرض بطاقة برقم مرجعي. استخدمها حصراً للطلبات التي لا تستطيع أنت ولا أدواتك إنجازها ويحتاجها موظف بشري: تقديم طلب التمويل رسمياً (بعد عرض التقدير وموافقة العميل الصريحة)، فتح أو إغلاق حساب، شكوى معقدة، طلب مستندات رسمية. لا تفتحها أبداً لسؤال تقدر تجيب عنه من معلوماتك أو بأدواتك الأخرى — جاوب مباشرة بدلها. وممنوع فتحها لترشيح أو إصدار البطاقات — لذلك أداتا recommend_card و issue_card.
-13) recommend_card(): عند سؤال العميل عن أفضل أو أنسب بطاقة أو طلب ترشيح («وش أفضل بطاقة لي؟»، «رشح لي بطاقة»، «وش مزايا بطاقة كاش باك؟») — استدعها فوراً. تحلل مصروفاته الفعلية وتعرض بطاقة ترشيح فيزا كاش باك بنسبة تطابق وعائد متوقع. تنبيه مهم: لا تستدعها أبداً عند فقدان/سرقة/تجميد بطاقة — تلك حالات set_card_lock حصراً. الترشيح ليس موافقة ائتمانية نهائية.
-14) issue_card(): يصدر بطاقة فيزا كاش باك رقمية فوراً ويضيفها لبطاقات العميل. استدعها فقط بعد طلب صريح من العميل («أصدرها»، «أبيها»، «موافق أصدر») — عادةً بعد ظهور الترشيح. لا تسأل تأكيداً إضافياً بعد طلبه الصريح.
-معلومات بطاقة فيزا كاش باك (جاوب منها مباشرة عند السؤال عن الرسوم أو المزايا): 1% كاش باك على المشتريات اليومية، 3% على المطاعم والتوصيل أول 3 أشهر، الإصدار والسنة الأولى مجاناً، بعدها 199 ر.س سنوياً وتُعفى عند إنفاق 20,000 ر.س في السنة. بطاقة رقمية فورية بتجميد من التطبيق.
+13) recommend_card(): عند سؤال العميل عن أفضل أو أنسب بطاقة أو طلب ترشيح («وش أفضل بطاقة لي؟»، «رشح لي بطاقة») — استدعها فوراً. تحلل مصروفاته وتعرض أنسب بطاقة إنماء لنمط صرفه بنسبة تطابق وسبب. تنبيه مهم: لا تستدعها أبداً عند فقدان/سرقة/تجميد بطاقة — تلك set_card_lock حصراً. الترشيح ليس موافقة ائتمانية نهائية.
+14) list_cards(): إذا ما عجبت العميل البطاقة المرشّحة، أو أراد يقارن أو يشوف الخيارات («ما عجبتني»، «اعرض غيرها»، «وش عندكم بطاقات»، «قارن») — استدعها. تعرض كل بطاقات إنماء مرتبة من الأنسب لصرفه للأقل. علّق على أعلى ثلاث باختصار.
+15) issue_card(card): يصدر البطاقة التي اختارها العميل رقمياً ويضيفها لبطاقاته. استدعها بعد طلب صريح بالإصدار («أصدرها»، «أبي إنفينيت»، «موافق»). مرّر اسم البطاقة التي اختارها. لا تسأل تأكيداً إضافياً بعد طلبه الصريح.
+بطاقات إنماء المتاحة (رتّبها بأداة list_cards): فيزا إنفينيت وسيغنيتشر والبلاتينية (نقاط مكافآت — الأفضل للصرف المحلي)، بطاقة الشراء (تحكم ورسوم منخفضة)، الفرسان سيغنتشر والبلاتينية (أميال طيران للمسافرين)، يونيون باي (قبول في آسيا)، بطاقة المسافر (عملات متعددة). كلها متوافقة مع الشريعة. للعميل الحالي أعلى صرفه محلي (مطاعم) فالأنسب بطاقات النقاط.
 
 أنت أيضاً خط الدعم الأول للعميل — جاوب استفسارات الخدمة مباشرة من هذه المعلومات بدل تحويله لمركز الاتصال:
 - التحويل المحلي (سريع): فوري ومجاني. الحد اليومي للتحويلات: 60,000 ر.س ويمكن تعديله من إعدادات الأمان.
@@ -257,13 +258,23 @@ const TOOLS = [{
     },
     {
       name: "recommend_card",
-      description: "يحلل مصروفات العميل الفعلية ويعرض بطاقة ترشيح فيزا كاش باك بنسبة تطابق وعائد متوقع أول سنة. استدعه عند: وش أفضل بطاقة لي، رشح لي بطاقة، أي بطاقة تناسبني، وش مزايا كاش باك. لا تستدعه أبداً عند فقدان أو سرقة أو تجميد بطاقة (تلك set_card_lock).",
+      description: "يحلل مصروفات العميل الفعلية ويعرض أنسب بطاقة إنماء لنمط صرفه (الأعلى تطابقاً) بتفاصيلها الكاملة. استدعه عند: وش أفضل بطاقة لي، رشح لي بطاقة، أي بطاقة تناسبني. لا تستدعه أبداً عند فقدان أو سرقة أو تجميد بطاقة (تلك set_card_lock).",
+      parameters: { type: "OBJECT", properties: {} }
+    },
+    {
+      name: "list_cards",
+      description: "يعرض جميع بطاقات إنماء مرتبة من الأنسب لصرف العميل إلى الأقل. استدعه إذا لم تعجب العميل البطاقة المرشّحة أو أراد المقارنة أو رؤية الخيارات: «ما عجبتني»، «اعرض غيرها»، «وش عندكم بطاقات ثانية»، «اعرض كل البطاقات»، «قارن لي».",
       parameters: { type: "OBJECT", properties: {} }
     },
     {
       name: "issue_card",
-      description: "يصدر بطاقة فيزا كاش باك رقمية فوراً ويضيفها لبطاقات العميل مع بطاقة تأكيد مرئية. استدعه فقط بعد طلب صريح من العميل بالإصدار.",
-      parameters: { type: "OBJECT", properties: {} }
+      description: "يصدر بطاقة إنماء رقمية فوراً ويضيفها لبطاقات العميل. استدعه بعد اختيار العميل الصريح لبطاقة معيّنة بالإصدار. مرّر اسم البطاقة التي اختارها.",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          card: { type: "STRING", description: "اسم البطاقة أو نوعها (مثل: إنفينيت، سيغنيتشر، الفرسان، المسافر) — اتركه للبطاقة المرشّحة الأعلى تطابقاً" }
+        }
+      }
     }
   ]
 }];
@@ -297,30 +308,86 @@ function doFinance(args, s, actions) {
   return { ok: true, note: `تقدير التمويل الشخصي (مرابحة ~${FIN_RATE}% متناقص): ${requested > 0 ? `المبلغ المطلوب ${amount} ر.س` : `الحد الأقصى المتاح ~${amount} ر.س`} على ${months} شهراً. ${fitNote} ظهرت بطاقة التقدير للعميل. وضّح أنه تقدير مبدئي وليس موافقة ائتمانية، واعرض عليه فتح تذكرة لموظف التمويل لإكمال التقديم الرسمي إذا رغب.` };
 }
 
-const CASHBACK_CARD = { id: "visa-cashback", name: "فيزا كاش باك", last4: "2088", frozen: false };
+// Real Alinma card catalog, pre-ranked best→last for a domestic everyday
+// spender (the demo customer: dining/shopping/bills heavy, not a frequent
+// traveler). `base` is the match score; rewards on local spend rank highest,
+// airline/travel/multi-currency cards rank lower for this profile.
+const CARDS = [
+  { id: "visa-infinite", name: "فيزا الائتمانية إنفينيت", net: "VISA", tier: "Infinite", cat: "نقاط مكافآت", last4: "7001", color: "plum",
+    domestic: "6 نقاط لكل ريال محلي · 7 دولي", welcome: "20,000 نقطة ترحيبية عند إنفاق 20,000 خلال 90 يوماً", lounges: "دخول +1000 صالة مطار عالمياً",
+    fees: "الإصدار والسنة الأولى مجاناً · بعدها 300 ر.س سنوياً", murabaha: "مرابحة 1.9%–3% شهرياً (حسب العقد)", shariah: true, base: 94,
+    why: "أعلى مكافآت على صرفك المحلي اليومي (مطاعم وتسوّق)" },
+  { id: "visa-signature", name: "فيزا الائتمانية سيغنيتشر", net: "VISA", tier: "Signature", cat: "نقاط مكافآت", last4: "7002", color: "sunset",
+    domestic: "5 نقاط لكل ريال محلي · 7 دولي", welcome: "20,000 نقطة ترحيبية", lounges: "دخول +1000 صالة مطار عالمياً",
+    fees: "الإصدار والسنة الأولى مجاناً · بعدها 250 ر.س سنوياً", murabaha: "مرابحة 1.9%–3% شهرياً", shariah: true, base: 89,
+    why: "مكافآت عالية على المحلي برسوم أقل من إنفينيت" },
+  { id: "visa-platinum", name: "فيزا الائتمانية البلاتينية", net: "VISA", tier: "Platinum", cat: "نقاط مكافآت", last4: "7003", color: "navy",
+    domestic: "4 نقاط لكل ريال محلي · 6 دولي", welcome: "20,000 نقطة ترحيبية", lounges: "دخول 25 صالة مطار",
+    fees: "الإصدار والسنة الأولى مجاناً · بعدها 250 ر.س سنوياً", murabaha: "مرابحة 1.9%–3% شهرياً", shariah: true, base: 83,
+    why: "نقاط جيدة على صرفك المحلي بمزايا أساسية" },
+  { id: "purchase", name: "بطاقة الشراء", net: "VISA", tier: "Purchase", cat: "تحكّم كامل", last4: "7004", color: "blue",
+    domestic: "تحكم كامل بالحد الائتماني · حد سحب يومي 15,000 ر.س", welcome: "20,000 نقطة ترحيبية · بدون موافقة ائتمانية مسبقة", lounges: "دخول 25 صالة مطار",
+    fees: "الإصدار 100 ر.س · سنوياً 100 ر.س", murabaha: "", shariah: true, base: 74,
+    why: "تحكم كامل ورسوم منخفضة وبدون موافقة ائتمانية مسبقة" },
+  { id: "fursan-signature", name: "الفرسان الائتمانية سيغنتشر", net: "VISA", tier: "Signature", cat: "أميال طيران", last4: "7005", color: "plum",
+    domestic: "1 ميل لكل 3 ريال محلي · 1.5 دولي · دخول حصري صالات الفرسان", welcome: "", lounges: "دخول +1000 صالة مطار",
+    fees: "الإصدار 900 ر.س · سنوياً 500 ر.س", murabaha: "مرابحة 2.5%–3% شهرياً", shariah: true, base: 66,
+    why: "الأفضل لو تسافر كثيراً مع الخطوط السعودية" },
+  { id: "fursan-platinum", name: "الفرسان الائتمانية البلاتينية", net: "VISA", tier: "Platinum", cat: "أميال طيران", last4: "7006", color: "navy",
+    domestic: "1 ميل لكل 4 ريال محلي · 3 دولي", welcome: "", lounges: "دخول 25 صالة مطار",
+    fees: "الإصدار مجاناً (عرض) · سنوياً 150 ر.س", murabaha: "مرابحة 2.5%–3% شهرياً", shariah: true, base: 61,
+    why: "أميال طيران برسوم سنوية منخفضة للمسافر أحياناً" },
+  { id: "unionpay", name: "يونيون باي بلاتينيوم", net: "UnionPay", tier: "Platinum", cat: "قبول عالمي", last4: "7007", color: "navy",
+    domestic: "الأوسع قبولاً في الصين وشرق آسيا", welcome: "", lounges: "",
+    fees: "الإصدار 250 ر.س · سنوياً 200 ر.س", murabaha: "", shariah: true, base: 52,
+    why: "مناسبة لو تسافر لآسيا كثيراً" },
+  { id: "traveler", name: "بطاقة المسافر", net: "VISA", tier: "Platinum", cat: "عملات متعددة", last4: "7008", color: "blue",
+    domestic: "متعددة العملات · بدون رسوم دولية بنفس العملة · سعر صرف ثابت", welcome: "", lounges: "",
+    fees: "الإصدار مجاناً (عرض) · سنوياً 75 ر.س", murabaha: "", shariah: true, base: 47,
+    why: "للسفر والشراء بعملات متعددة بلا رسوم تحويل" }
+];
 
-function doRecommendCard(s, actions) {
+function findCardProduct(ref) {
+  const n = normAr(ref);
+  if (!n) return null;
+  return CARDS.find((c) => normAr(c.name).includes(n) || n.includes(normAr(c.name)) || normAr(c.id) === n || normAr(c.tier) === n)
+    || CARDS.find((c) => normAr(c.name).split(/\s+/).some((w) => w && n.includes(w) && w.length > 3)) || null;
+}
+
+function spendTop(s) {
   const cats = Object.keys(s.expenses);
   const total = cats.reduce((sum, k) => sum + Number(s.expenses[k] || 0), 0);
   const topCat = cats.sort((a, b) => Number(s.expenses[b]) - Number(s.expenses[a]))[0] || "المطاعم";
-  const topSpend = Number(s.expenses[topCat] || 0);
-  const topPct = total ? Math.round(topSpend / total * 100) : 0;
-  const dining = Number(s.expenses["مطاعم"] || 0);
-  // year-one value: 3 intro months at 3% on dining, 1% after, 1% on everything else
-  const annualValue = Math.round((dining * 3 * 0.03) + (dining * 9 * 0.01) + (Math.max(0, total - dining) * 12 * 0.01));
-  const match = Math.min(96, 82 + Math.round(topPct / 3));
-  const issued = s.cards.some((c) => c.id === CASHBACK_CARD.id);
-  actions.push({ type: "card_offer", topCat, topPct, annualValue, match, issued, monthlySpend: Math.round(total) });
-  return { ok: true, note: `ظهرت بطاقة الترشيح للعميل: فيزا كاش باك بتطابق ${match}% — أعلى فئة صرفه «${topCat}» (${topPct}% من إجمالي ${Math.round(total)} ر.س شهرياً)، والعائد المتوقع أول سنة ~${annualValue} ر.س كاش باك. ${issued ? "البطاقة صادرة له بالفعل — ذكّره بذلك." : "اشرح سبب الترشيح باختصار، ووضّح أنه مبني على نمط صرفه وليس موافقة نهائية، واعرض إصدارها فوراً إذا رغب."}` };
+  const topPct = total ? Math.round(Number(s.expenses[topCat] || 0) / total * 100) : 0;
+  return { total: Math.round(total), topCat, topPct };
 }
 
-function doIssueCard(s, actions) {
-  if (s.cards.some((c) => c.id === CASHBACK_CARD.id)) {
-    return { ok: false, note: `بطاقة فيزا كاش باك صادرة للعميل بالفعل (•••• ${CASHBACK_CARD.last4}) — أخبره أنها جاهزة في بطاقاته.` };
+function doRecommendCard(s, actions) {
+  const { total, topCat, topPct } = spendTop(s);
+  const best = CARDS[0]; // catalog is pre-ranked for the domestic everyday spender
+  const issued = s.cards.some((c) => c.id === best.id);
+  actions.push({ type: "card_offer", card: Object.assign({ match: best.base, issued }, best), topCat, topPct, monthlySpend: total, hasMore: true });
+  const tail = issued
+    ? "البطاقة صادرة له بالفعل."
+    : `اشرح سبب الترشيح باختصار (${best.domestic})، ووضّح أنه مبني على نمط صرفه وليس موافقة نهائية. إن لم تعجبه اعرض عليه بقية البطاقات بأداة list_cards، أو أصدرها بأداة issue_card إن وافق.`;
+  return { ok: true, note: `الأنسب لصرف العميل: «${best.name}» بتطابق ${best.base}% — أعلى فئة صرفه «${topCat}» (${topPct}% من ${total} ر.س شهرياً)، و${best.why}. ${tail}` };
+}
+
+function doListCards(s, actions) {
+  const { topCat } = spendTop(s);
+  const list = CARDS.map((c) => Object.assign({ match: c.base, issued: s.cards.some((x) => x.id === c.id) }, c));
+  actions.push({ type: "card_list", cards: list, topCat });
+  return { ok: true, note: `عُرضت كل بطاقات البنك (${CARDS.length}) مرتبة من الأنسب لصرف العميل للأقل: ${CARDS.map((c) => `${c.name} (${c.base}%)`).join(" ، ")}. اذكر أعلى ثلاث بطاقات باختصار واعرض عليه إصدار أي واحدة بأداة issue_card.` };
+}
+
+function doIssueCard(args, s, actions) {
+  const card = findCardProduct(args && args.card) || CARDS[0];
+  if (s.cards.some((c) => c.id === card.id)) {
+    return { ok: false, note: `بطاقة «${card.name}» صادرة للعميل بالفعل (•••• ${card.last4}) — أخبره أنها جاهزة في بطاقاته.` };
   }
-  s.cards.push(Object.assign({}, CASHBACK_CARD));
-  actions.push({ type: "card_issued", name: CASHBACK_CARD.name, last4: CASHBACK_CARD.last4 });
-  return { ok: true, note: `تم إصدار بطاقة ${CASHBACK_CARD.name} الرقمية (•••• ${CASHBACK_CARD.last4}) وأُضيفت لبطاقات العميل — تظهر الآن في شاشته الرئيسية ويقدر يستخدمها فوراً. هنّئه باختصار وذكّره بعرض 3% على المطاعم أول 3 أشهر.` };
+  s.cards.push({ id: card.id, name: card.name, last4: card.last4, frozen: false });
+  actions.push({ type: "card_issued", name: card.name, last4: card.last4 });
+  return { ok: true, note: `تم إصدار «${card.name}» الرقمية (•••• ${card.last4}) وأُضيفت لبطاقات العميل — تظهر الآن في شاشته الرئيسية ويقدر يستخدمها فوراً. هنّئه باختصار وذكّره بميزتها: ${card.domestic}.` };
 }
 
 function doTicket(args, s, actions) {
@@ -698,8 +765,9 @@ export default async function handler(req, res) {
       : `تمت إعادة تفعيل بطاقة ${last.name} •••• ${last.last4} — تشتغل الآن بشكل طبيعي.`;
     if (last.type === "loan") return `جهّزت لك تقدير التمويل: ${last.amount} ر.س بقسط ${last.monthly} ر.س على ${last.months} شهراً — تقدير مبدئي وليس موافقة نهائية، وتفاصيله في البطاقة.`;
     if (last.type === "ticket") return `فتحت لك تذكرة دعم برقم ${last.ref} — موظف مختص بيتواصل معك ${last.eta}.`;
-    if (last.type === "card_offer") return `حلّلت مصروفاتك — أنسب بطاقة لك فيزا كاش باك بتطابق ${last.match}% وعائد متوقع ~${last.annualValue} ر.س أول سنة. التفاصيل في البطاقة، وأقدر أصدرها لك فوراً.`;
-    if (last.type === "card_issued") return `مبروك! أصدرت لك بطاقة ${last.name} الرقمية •••• ${last.last4} — تلقاها الآن في بطاقاتك وتشتغل فوراً.`;
+    if (last.type === "card_offer") return `حلّلت مصروفاتك — أنسب بطاقة لك «${last.card.name}» بتطابق ${last.card.match}%. التفاصيل في البطاقة، وإن ما عجبتك أعرض لك بقية الخيارات أو أصدرها فوراً.`;
+    if (last.type === "card_list") return `هذي كل بطاقات إنماء مرتبة من الأنسب لصرفك — اختر أي وحدة وأصدرها لك فوراً.`;
+    if (last.type === "card_issued") return `مبروك! أصدرت لك «${last.name}» الرقمية •••• ${last.last4} — تلقاها الآن في بطاقاتك وتشتغل فوراً.`;
     if (last.type === "transfer" && last.ok) return `تم تنفيذ التحويل بنجاح. رصيدك الحالي ${s.balance} ر.س.`;
     if (last.type === "transfer") return "تعذّر تنفيذ التحويل: الرصيد غير كافٍ.";
     if (last.type === "open") return "فتحت لك الشاشة.";
@@ -747,7 +815,8 @@ export default async function handler(req, res) {
         else if (name === "financing_estimate") out = doFinance(fargs, s, actions);
         else if (name === "create_support_ticket") out = doTicket(fargs, s, actions);
         else if (name === "recommend_card") out = doRecommendCard(s, actions);
-        else if (name === "issue_card") out = doIssueCard(s, actions);
+        else if (name === "list_cards") out = doListCards(s, actions);
+        else if (name === "issue_card") out = doIssueCard(fargs, s, actions);
         else out = { ok: false, note: "أداة غير معروفة." };
         respParts.push({ functionResponse: { name, response: out } });
       }

@@ -785,30 +785,85 @@
   }
 
   // ---------------- CARD RECOMMENDATION OFFER ----------------
+  var CARD_COLORS = {
+    plum: "linear-gradient(135deg,#5a3d6b,#2a1a36)", sunset: "linear-gradient(135deg,#EC7C5A,#7d3b2c)",
+    navy: "linear-gradient(135deg,#274B66,#122536)", blue: "linear-gradient(135deg,#3a5f8a,#1a2c44)"
+  };
+  function cardVisual(c, tall) {
+    var bg = CARD_COLORS[c.color] || CARD_COLORS.navy;
+    var net = c.net === "mada" ? "mada" : (c.net === "UnionPay" ? "UnionPay" : "VISA");
+    return '<div style="position:relative;margin:10px 0;border-radius:14px;padding:14px 16px;height:' + (tall ? 118 : 92) + 'px;background:' + bg + ';overflow:hidden">'
+      + '<div style="display:flex;justify-content:space-between;align-items:flex-start"><b style="color:#fff;font-size:12.5px">مصرف الإنماء</b><i style="color:#fff;font-weight:900;font-size:11.5px;font-style:italic">' + net + (c.tier ? ' ' + esc(c.tier) : '') + '</i></div>'
+      + '<div style="color:#fff;font-weight:800;font-size:' + (tall ? 15 : 13.5) + 'px;margin-top:' + (tall ? 10 : 6) + 'px">' + esc(c.name) + '</div>'
+      + '<div style="direction:ltr;text-align:right;color:#fff;font-size:12.5px;letter-spacing:2px;margin-top:' + (tall ? 14 : 8) + 'px">•••• ' + esc(c.last4) + '</div></div>';
+  }
   function renderCardOffer(a) {
+    var c = a.card;
     var card = document.createElement("div");
     card.className = "tcard";
     card.innerHTML =
-      '<div class="h"><span class="ti">' + ICON_FIN + '</span>ترشيح ثَروة لك<span class="badge">' + a.match + '% تطابق</span></div>'
-      + '<div style="position:relative;margin:10px 0;border-radius:14px;padding:14px 16px;height:118px;background:linear-gradient(135deg,#274B66,#122536);overflow:hidden">'
-      +   '<div style="display:flex;justify-content:space-between;align-items:flex-start"><b style="color:#fff;font-size:13px">ثَروة</b><i style="color:#fff;font-weight:900;font-size:12px;font-style:italic">VISA</i></div>'
-      +   '<div style="color:#fff;font-weight:800;font-size:16px;margin-top:8px">فيزا كاش باك</div>'
-      +   '<div style="direction:ltr;text-align:right;color:#fff;font-size:13px;letter-spacing:2px;margin-top:12px">•••• 2088</div>'
-      + '</div>'
+      '<div class="h"><span class="ti">' + ICON_FIN + '</span>أنسب بطاقة لصرفك<span class="badge">' + c.match + '% تطابق</span></div>'
+      + cardVisual(c, true)
       + cardRow("سبب الترشيح", '<span class="v" style="font-size:12.5px">أعلى فئة صرفك «' + esc(a.topCat) + '» — ' + a.topPct + '% من ' + fmt0(a.monthlySpend) + ' ر.س شهرياً</span>')
-      + '<div class="r big"><span class="k">كاش باك متوقع أول سنة</span><span class="v" style="color:var(--green)">~' + fmt0(a.annualValue) + '<span class="c">ر.س</span></span></div>'
-      + cardRow("المزايا", '<span class="v" style="font-size:12.5px">3% مطاعم وتوصيل أول 3 أشهر · 1% على الباقي</span>')
-      + cardRow("الرسوم", '<span class="v" style="font-size:12.5px">مجانية أول سنة — بعدها 199 ر.س تُعفى عند إنفاق 20,000</span>')
-      + (a.issued
+      + cardRow("المكافآت", '<span class="v" style="font-size:12px">' + esc(c.domestic) + '</span>')
+      + (c.welcome ? cardRow("مكافأة ترحيبية", '<span class="v" style="font-size:12px;color:var(--green)">' + esc(c.welcome) + '</span>') : "")
+      + (c.lounges ? cardRow("صالات المطار", '<span class="v" style="font-size:12px">' + esc(c.lounges) + '</span>') : "")
+      + cardRow("الرسوم", '<span class="v" style="font-size:12px">' + esc(c.fees) + '</span>')
+      + (c.shariah ? cardRow("التوافق", '<span class="v" style="font-size:12px;color:var(--green)">متوافقة مع الشريعة</span>') : "")
+      + (c.issued
           ? '<div class="confirm"><button class="btn ok" disabled>' + ICON_CHECK + 'بطاقتك صادرة بالفعل</button></div>'
-          : '<div class="confirm"><button class="btn ok issue-card">' + ICON_CHECK + 'أصدر البطاقة الرقمية</button></div>')
+          : '<div class="confirm"><button class="btn ok issue-card">' + ICON_CHECK + 'أصدرها</button><button class="btn no more-cards">ما عجبتني — اعرض غيرها</button></div>')
       + '<div class="r" style="color:var(--muted);font-size:12.5px">الترشيح مبني على نمط صرفك الفعلي — وليس موافقة ائتمانية نهائية.</div>';
     log.appendChild(card); scrollChat();
     var ib = q(".issue-card", card);
-    if (ib) ib.onclick = function () {
-      ib.disabled = true;
-      handle("أصدر لي بطاقة فيزا كاش باك");
-    };
+    if (ib) ib.onclick = function () { ib.disabled = true; handle("أصدر لي بطاقة " + c.name); };
+    var mb = q(".more-cards", card);
+    if (mb) mb.onclick = function () { mb.disabled = true; handle("ما عجبتني، اعرض لي بقية البطاقات"); };
+  }
+
+  // ---------------- CARD LIST (best → last) ----------------
+  function renderCardList(a) {
+    var card = document.createElement("div");
+    card.className = "tcard";
+    var rows = (a.cards || []).map(function (c, i) {
+      var barColor = c.match >= 80 ? "var(--green)" : (c.match >= 60 ? "var(--gold)" : "var(--muted)");
+      return '<div class="cardrow-item" data-name="' + esc(c.name) + '" data-issued="' + (c.issued ? "1" : "0") + '" style="display:flex;gap:10px;align-items:center;padding:9px 2px;border-top:1px solid var(--line);cursor:pointer">'
+        + '<span style="font-size:13px;font-weight:800;color:' + barColor + ';min-width:34px">' + c.match + '%</span>'
+        + '<span style="flex:1"><b style="font-size:13px">' + esc(c.name) + '</b><br><small style="color:var(--muted);font-size:11px">' + esc(c.cat) + ' · ' + esc(c.why) + '</small></span>'
+        + (c.issued ? '<span style="font-size:11px;color:var(--green);white-space:nowrap">✓ صادرة</span>' : '<span class="btn ok mini-issue" style="padding:5px 12px;font-size:11.5px;white-space:nowrap">إصدار</span>')
+        + '</div>';
+    }).join("");
+    card.innerHTML =
+      '<div class="h"><span class="ti">' + ICON_FIN + '</span>كل البطاقات — مرتّبة لصرفك<span class="badge">' + (a.cards || []).length + ' بطاقات</span></div>'
+      + rows
+      + '<div class="r" style="color:var(--muted);font-size:12px;border-top:1px solid var(--line)">مرتّبة من الأنسب لنمط صرفك للأقل — اضغط «إصدار» لأي بطاقة تعجبك.</div>';
+    log.appendChild(card); scrollChat();
+    qa(".mini-issue", card).forEach(function (btn) {
+      btn.onclick = function (e) {
+        e.stopPropagation();
+        var row = btn.closest(".cardrow-item");
+        btn.textContent = "…";
+        handle("أصدر لي بطاقة " + row.getAttribute("data-name"));
+      };
+    });
+  }
+
+  // ---------------- BUDGET CARD (inline, stays in chat) ----------------
+  var ICON_BUDGET = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="7" rx="1"/><rect x="12" y="7" width="3" height="11" rx="1"/><rect x="17" y="4" width="3" height="14" rx="1"/></svg>';
+  function renderBudgetCard(a) {
+    var spent = Number(a.spent) || 0, amount = Number(a.amount) || 1;
+    var pc = Math.min(100, Math.round(spent / amount * 100));
+    var over = spent >= amount;
+    var color = over ? "#F0796B" : (pc >= 70 ? "var(--gold)" : "var(--green)");
+    var card = document.createElement("div");
+    card.className = "tcard";
+    card.innerHTML =
+      '<div class="h"><span class="ti">' + ICON_BUDGET + '</span>ميزانية ' + esc(a.category) + '<span class="badge" style="background:rgba(255,255,255,.07);color:' + color + '">' + pc + '%</span></div>'
+      + '<div class="r big"><span class="k">الحد الشهري</span><span class="v">' + fmt0(a.amount) + '<span class="c">ر.س</span></span></div>'
+      + '<div class="r" style="display:block"><div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-bottom:5px"><span>المصروف حتى الآن</span><span style="color:' + color + ';font-weight:700">' + fmt0(spent) + ' من ' + fmt0(a.amount) + ' ر.س</span></div>'
+      + '<div style="height:8px;border-radius:5px;background:var(--surface2);overflow:hidden"><span style="display:block;height:100%;width:' + pc + '%;background:' + color + '"></span></div></div>'
+      + '<div class="r" style="color:var(--muted);font-size:12.5px">' + (over ? "تجاوزت الحد — نبّهك ثَروة عند كل صرف في هذه الفئة." : "تشوف تقدّمها أيضاً في شاشة التحليل، وأنبّهك قبل التجاوز.") + '</div>';
+    log.appendChild(card); scrollChat();
   }
 
   // ---------------- APPLY ACTIONS FROM SERVER ----------------
@@ -819,7 +874,7 @@
     invest_plan: "set_investment_plan", budget: "set_budget", zakat: "calculate_zakat",
     receipt: "show_receipt", health: "financial_health", card_lock: "set_card_lock",
     loan: "financing_estimate", ticket: "create_support_ticket",
-    card_offer: "recommend_card", card_issued: "issue_card"
+    card_offer: "recommend_card", card_list: "list_cards", card_issued: "issue_card"
   };
   var toolCount = 0;
   function toolChip(type) {
@@ -852,8 +907,7 @@
         setTimeout(function () { show("s-invest"); }, 1100);
       } else if (a.type === "budget") {
         renderBudgets();
-        successBubble("تم ضبط ميزانية " + a.category + ": " + fmt0(a.amount) + " ر.س شهرياً.");
-        setTimeout(function () { show("s-spend"); }, 1100);
+        renderBudgetCard(a);
       } else if (a.type === "zakat") {
         renderZakatCard(a);
       } else if (a.type === "receipt") {
@@ -869,6 +923,8 @@
         renderTicketCard(a);
       } else if (a.type === "card_offer") {
         renderCardOffer(a);
+      } else if (a.type === "card_list") {
+        renderCardList(a);
       } else if (a.type === "card_issued") {
         renderCards();
         successBubble("تم إصدار بطاقة " + a.name + " الرقمية •••• " + a.last4 + " — تلقاها في بطاقاتك الآن.");
