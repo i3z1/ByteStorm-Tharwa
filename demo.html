@@ -266,6 +266,7 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     <svg class='spark' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3l1.8 4.7L18.5 9.5 13.8 11.3 12 16l-1.8-4.7L5.5 9.5l4.7-1.8L12 3Z'/><path d='M19 14l.9 2.3 2.3.9-2.3.9L19 20.4l-.9-2.3-2.3-.9 2.3-.9L19 14Z'/></svg>
     <div class='ttl'>ثَروة</div>
     <div class='tg2'>مصرفي خاص لكل عميل — <span class='hl'>يسمعك، يفهمك، وينفّذ بأمان</span></div>
+    <div style='margin-top:16px;font-size:15.5px;font-weight:700;color:#ECF2F6;background:rgba(236,124,90,.16);border:1px solid rgba(236,124,90,.38);padding:9px 22px;border-radius:20px'>ليس تطبيقاً منفصلاً — وحدة تُدمج <b style='color:#F1A184'>داخل تطبيق البنك نفسه</b> وبهويته، مثل تطبيق الإنماء</div>
   </div>
 
   <div class='ov' id='outro'>
@@ -275,7 +276,7 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     <div class='team'>فريق ByteStorm — هاكاثون امد 2026 · أكاديمية طويق</div>
   </div>
 
-  <div class='dots' id='dots'><i class='on'></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div class='dots' id='dots'><i class='on'></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
 </div>
 
 <script>
@@ -500,10 +501,10 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     await caption('تكلّم بلغتك… <span class="hl">وثَروة ينفّذ</span>', 'أوامر بالمحادثة — وتنفيذ آمن برمز تحقق، مثل بنكك تماماً');
     await sleep(700); page('p-chat');
     await sleep(500);
-    await typeIn('حوّل ٥٠٠ لأحمد');
-    await pressSend(); userMsg('حوّل ٥٠٠ لأحمد');
+    await typeIn('حوّل ٥٠٠ لأحمد العتيبي');
+    await pressSend(); userMsg('حوّل ٥٠٠ لأحمد العتيبي');
     await think(1400);
-    botMsg('فهمت — قصدك <b>أحمد العتيبي (مصرف الإنماء)</b>، الوحيد باسم أحمد في مستفيديك. راجع التفاصيل واضغط <b>تأكيد</b>:');
+    botMsg('تمام — <b>أحمد العتيبي (مصرف الإنماء)</b> من مستفيديك المسجّلين. راجع التفاصيل واضغط <b>تأكيد</b>:');
     await sleep(1100);
     var card = confirmCard('500.00', false);
     await sleep(3200);
@@ -647,6 +648,16 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     await think(1100);
     botMsg('صرفت هذا الشهر <b>2,247 ر.س</b> على المطاعم — 35% من مصروفاتك. تبيني أضبط لك ميزانية؟');
     await sleep(3800);
+
+    // ---- scene 9: why the bank adopts it (value) ----
+    dot(9);
+    page('p-home');
+    await caption('للبنك: <span class="hl">رضا أعلى وتكاليف أقل</span>', '~80% من الاستفسارات متكررة — ثَروة يحلّها ذاتياً بدون موظف');
+    await sleep(4200);
+    await caption('المكالمة تكلّف <span class="hl">ريالات… والمحادثة هللات</span>', 'توفير ×10 لكل استفسار + خدمة ذاتية في 3 ثوانٍ = عميل أسعد بتكلفة أقل');
+    await sleep(4200);
+    await caption('يُدمج <span class="hl">داخل تطبيق البنك نفسه</span>', 'وحدة White-label بهوية البنك — تُركّب فوق أنظمته القائمة في أسابيع');
+    await sleep(4200);
 
     // ---- outro ----
     q('#outro').classList.add('on');
