@@ -20,7 +20,7 @@
       { id: "mada", name: "مدى الرقمية", last4: "4821", frozen: false },
       { id: "credit", name: "الائتمانية بلاتينيوم", last4: "9310", frozen: false }
     ],
-    invest: { monthly: 500, risk: "متوسط", goal: { name: "ادخار عام", amount: 20000, months: 24 } },
+    invest: { monthly: 500, goal: { name: "ادخار عام", amount: 20000, months: 24 } },
     txns: [
       { name: "مطعم النخيل", cat: "مطاعم", amount: 85, dir: "out", when: "اليوم 1:24 م" },
       { name: "سوبرماركت العثيم", cat: "تسوّق", amount: 243.5, dir: "out", when: "أمس 6:10 م" },
@@ -120,12 +120,8 @@
     });
   }
 
-  // ---------------- INVEST SCREEN (goal-driven, compound growth) ----------------
-  var RISKS = {
-    "متحفظ": { pos: "88%", growth: 5.1, alloc: [30, 20, 50], word: "المتحفظ" },
-    "متوسط": { pos: "50%", growth: 8.4, alloc: [60, 20, 20], word: "المتوسط" },
-    "جريء": { pos: "12%", growth: 12.3, alloc: [80, 15, 5], word: "الجريء" }
-  };
+  // ---------------- SAVINGS SCREEN (goal-driven, compound murabaha growth) ----------------
+  var SAVE_RATE = 4.0; // حساب ادخار مرابحة — عائد سنوي متوقع (نموذج تجريبي)
   function fvMonthly(monthly, annualPct, months) {
     var i = annualPct / 100 / 12;
     return Math.round(monthly * ((Math.pow(1 + i, months) - 1) / i));
@@ -134,29 +130,16 @@
     var i = annualPct / 100 / 12;
     return Math.max(50, Math.ceil((target * i / (Math.pow(1 + i, months) - 1)) / 50) * 50);
   }
-  function applyInvest(monthly, risk) {
-    risk = deTashkeel(risk);
-    if (!RISKS[risk]) risk = "متوسط";
-    var r = RISKS[risk];
+  function applyInvest(monthly) {
     monthly = Math.max(250, Math.min(20000, Math.round((Number(monthly) || state.invest.monthly || 500) / 50) * 50));
     var goal = (state.invest && state.invest.goal) || { name: "ادخار عام", amount: 20000, months: 24 };
-    state.invest = { monthly: monthly, risk: risk, goal: goal };
+    state.invest = { monthly: monthly, goal: goal };
 
     var gl = q("#inv-goal"); if (gl) gl.textContent = goal.name + " — " + fmt0(goal.amount) + " ر.س خلال " + goal.months + " شهراً";
-    var nd = q("#inv-needed"); if (nd) nd.textContent = fmt0(neededMonthly(goal.amount, r.growth, goal.months)) + " ر.س شهرياً";
+    var nd = q("#inv-needed"); if (nd) nd.textContent = fmt0(neededMonthly(goal.amount, SAVE_RATE, goal.months)) + " ر.س شهرياً";
     var m = q("#inv-monthly"); if (m) m.textContent = fmt0(monthly);
-    var k = q("#inv-knob"); if (k) k.style.left = r.pos;
-    qa("#s-invest .rlabels span").forEach(function (sp) {
-      sp.classList.toggle("on", deTashkeel(sp.textContent) === risk);
-    });
-    var g = q("#inv-growth"); if (g) g.textContent = "+" + r.growth + "%";
-    var fills = qa("#s-invest .arow .fill"), pcs = qa("#s-invest .arow .pc");
-    r.alloc.forEach(function (p, i) {
-      if (fills[i]) fills[i].style.width = p + "%";
-      if (pcs[i]) pcs[i].textContent = p + "%";
-    });
-    var w = q("#inv-risk-word"); if (w) w.textContent = r.word;
-    var proj = fvMonthly(monthly, r.growth, goal.months);
+    var g = q("#inv-growth"); if (g) g.textContent = "+" + SAVE_RATE + "%";
+    var proj = fvMonthly(monthly, SAVE_RATE, goal.months);
     var mo = q("#inv-months"); if (mo) mo.textContent = goal.months;
     var pj = q("#inv-proj"); if (pj) pj.textContent = "~" + fmt0(proj) + " ر.س";
     var tr = q("#inv-track");
@@ -774,7 +757,7 @@
       } else if (a.type === "beneficiary") {
         renderBeneficiaryCard(a);
       } else if (a.type === "invest_plan") {
-        applyInvest(a.monthly, a.risk);
+        applyInvest(a.monthly);
         setTimeout(function () { show("s-invest"); }, 1100);
       } else if (a.type === "budget") {
         renderBudgets();
@@ -869,7 +852,7 @@
     renderCards();
 
     // greeting
-    botMsg("أهلاً بك، أنا <b>ثَروة</b> — مساعدك البنكي الذكي. أنفّذ تحويلاتك، أحسب زكاتك، أضبط ميزانياتك، أقيّم وضعك المالي، وأجهّز لك خطة استثمار توصلك لهدفك. اكتب طلبك بلغتك الطبيعية أو اضغط زر <b>المايك</b> وتكلّم. ولو تبي ردوداً صوتية، فعّل زر <b>السماعة</b> بالأعلى.");
+    botMsg("أهلاً بك، أنا <b>ثَروة</b> — مساعدك البنكي الذكي. أنفّذ تحويلاتك، أحسب زكاتك، أضبط ميزانياتك، أقيّم وضعك المالي، وأجهّز لك خطة ادخار توصلك لهدفك. اكتب طلبك بلغتك الطبيعية أو اضغط زر <b>المايك</b> وتكلّم. ولو تبي ردوداً صوتية، فعّل زر <b>السماعة</b> بالأعلى.");
 
     var chips = q("#chips");
     if (chips) CHIPS.forEach(function (cText) {
@@ -956,7 +939,7 @@
     qa("#s-home .qa").forEach(function (a) {
       var lb = q(".lb", a); var t = lb ? lb.textContent : "";
       if (t.indexOf("المساعد") > -1 || t.indexOf("تحويل") > -1) a.onclick = function () { show("s-chat"); };
-      else if (t.indexOf("استثمار") > -1) a.onclick = function () { show("s-invest"); };
+      else if (t.indexOf("ادخار") > -1) a.onclick = function () { show("s-invest"); };
       else if (t.indexOf("دفع") > -1) a.onclick = function () { show("s-spend"); };
     });
     qa("#s-home .sec a").forEach(function (x) { x.onclick = function () { show("s-spend"); }; });
@@ -972,11 +955,8 @@
 
     // invest interactivity
     var minus = q("#inv-minus"), plus = q("#inv-plus");
-    if (minus) minus.onclick = function () { applyInvest(state.invest.monthly - 250, state.invest.risk); };
-    if (plus) plus.onclick = function () { applyInvest(state.invest.monthly + 250, state.invest.risk); };
-    qa("#s-invest .rlabels span").forEach(function (sp) {
-      sp.onclick = function () { applyInvest(state.invest.monthly, sp.textContent); };
-    });
+    if (minus) minus.onclick = function () { applyInvest(state.invest.monthly - 250); };
+    if (plus) plus.onclick = function () { applyInvest(state.invest.monthly + 250); };
     var cta = q("#s-invest .cta .b");
     if (cta) cta.onclick = function () {
       cta.dataset.on = "1";
@@ -985,7 +965,7 @@
       cta.style.boxShadow = "0 12px 26px rgba(55,201,140,.35)";
       cta.innerHTML = ICON_CHECK + "الخطة مفعّلة — " + fmt0(state.invest.monthly) + " ر.س شهرياً";
     };
-    applyInvest(state.invest.monthly, state.invest.risk);
+    applyInvest(state.invest.monthly);
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);

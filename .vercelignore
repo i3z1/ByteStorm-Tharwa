@@ -1,0 +1,5 @@
+.vercel
+.env*
+CLAUDE.md
+.claude
+start-claude.cmd

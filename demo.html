@@ -243,22 +243,21 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     </div>
 
     <div class='pg' id='p-invest'>
-      <div class='th'>خطة الاستثمار</div>
+      <div class='th'>خطة الادخار</div>
       <div class='reco'>
         <div class='rh'><span class='bt2'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3l1.8 4.7L18.5 9.5 13.8 11.3 12 16l-1.8-4.7L5.5 9.5l4.7-1.8L12 3Z'/></svg></span>توصية ثَروة الذكية</div>
-        <div class='desc'>هدفك: <b>سيارة — 30,000 ر.س خلال 12 شهراً</b>. بمستوى مخاطرتك المتوسط تحتاج <b>2,450 ر.س شهرياً</b>:</div>
+        <div class='desc'>هدفك: <b>سيارة — 30,000 ر.س خلال 12 شهراً</b>. في حساب ادخار مرابحة تحتاج <b>2,500 ر.س شهرياً</b>:</div>
         <div class='plan'>
-          <div><div class='pl'>الاستثمار الشهري</div><div class='pv'>2,450 <span style='font-size:11px;color:var(--muted)'>ر.س</span></div></div>
-          <div style='text-align:left'><div class='pl'>النمو المتوقع سنوياً</div><div class='pv g'>+8.4%</div></div>
+          <div><div class='pl'>الادخار الشهري</div><div class='pv'>2,500 <span style='font-size:11px;color:var(--muted)'>ر.س</span></div></div>
+          <div style='text-align:left'><div class='pl'>العائد المتوقع سنوياً</div><div class='pv g'>+4%</div></div>
         </div>
       </div>
       <div class='arows'>
-        <div class='arow'><span class='nm2'>صناديق متنوعة</span><span class='track'><span class='fill' data-w='60%' style='background:#5E8FB0'></span></span><span class='pc'>60%</span></div>
-        <div class='arow'><span class='nm2'>ذهب</span><span class='track'><span class='fill' data-w='20%' style='background:var(--gold)'></span></span><span class='pc'>20%</span></div>
-        <div class='arow'><span class='nm2'>نقد / مرابحة</span><span class='track'><span class='fill' data-w='20%' style='background:var(--green)'></span></span><span class='pc'>20%</span></div>
+        <div class='arow'><span class='nm2'>حساب ادخار مرابحة — متوافق مع الشريعة</span><span class='pc'>~4%</span></div>
+        <div class='arow'><span class='nm2'>إيداع تلقائي شهرياً — وسحب متاح في أي وقت</span><span class='pc'>✓</span></div>
       </div>
-      <div class='proj2'>المتوقع بعد 12 شهراً (بعائد مركّب): <b>~30,559 ر.س</b></div>
-      <div class='tracknote ok' id='tracknote'>الخطة تحقق هدفك — متوقع 30,559 من 30,000 ر.س</div>
+      <div class='proj2'>المتوقع بعد 12 شهراً (بعائد مركّب): <b>~30,556 ر.س</b></div>
+      <div class='tracknote ok' id='tracknote'>الخطة تحقق هدفك — متوقع 30,556 من 30,000 ر.س</div>
     </div>
   </div></div>
   </div>
@@ -576,13 +575,13 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
 
     // ---- scene 6: goal investing ----
     dot(6);
-    await caption('هدفك… <span class="hl">يصير خطة</span>', 'قسط شهري محسوب بعائد مركّب — ومن فائضك الحقيقي');
+    await caption('هدفك… <span class="hl">يصير خطة</span>', 'قسط شهري محسوب بعائد مرابحة مركّب — ومن فائضك الحقيقي');
     await sleep(600);
     log.innerHTML = '';
     await typeIn('أبي أجمع ٣٠ ألف لسيارة خلال سنة');
     await pressSend(); userMsg('أبي أجمع ٣٠ ألف لسيارة خلال سنة');
     await think(1400);
-    botMsg('ضبطت لك الخطة: <b>2,450 ر.س شهرياً</b> توصلك لهدفك خلال 12 شهراً — وهي ضمن فائضك الشهري.');
+    botMsg('ضبطت لك الخطة: <b>2,500 ر.س شهرياً</b> في حساب ادخار مرابحة توصلك لهدفك خلال 12 شهراً — وهي ضمن فائضك الشهري.');
     await sleep(1700);
     page('p-invest');
     await sleep(400);
