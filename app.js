@@ -812,9 +812,31 @@
   }
 
   // ---------------- APPLY ACTIONS FROM SERVER ----------------
+  // transparency chip: every executed tool is shown by name above its card —
+  // the "AI proposes, code executes" architecture made visible + a live counter
+  var TOOL_LABELS = {
+    confirm: "propose_transfer", transfer: "execute_transfer", beneficiary: "add_beneficiary",
+    invest_plan: "set_investment_plan", budget: "set_budget", zakat: "calculate_zakat",
+    receipt: "show_receipt", health: "financial_health", card_lock: "set_card_lock",
+    loan: "financing_estimate", ticket: "create_support_ticket",
+    card_offer: "recommend_card", card_issued: "issue_card"
+  };
+  var toolCount = 0;
+  function toolChip(type) {
+    var name = TOOL_LABELS[type];
+    if (!name || !log) return;
+    var d = document.createElement("div");
+    d.className = "toolchip";
+    d.textContent = "⚙ " + name;
+    log.appendChild(d);
+    toolCount++;
+    var el = q("#toolctr");
+    if (el) el.textContent = "⚙ " + toolCount;
+  }
   function applyActions(actions) {
     if (!actions) return;
     actions.forEach(function (a) {
+      toolChip(a.type);
       if (a.type === "confirm") {
         renderConfirmCard(a);
       } else if (a.type === "transfer" && a.ok) {

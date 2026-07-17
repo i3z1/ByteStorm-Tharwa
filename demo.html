@@ -85,6 +85,7 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
 .tcard .h .ti{width:29px;height:29px;border-radius:9px;background:var(--surface2);display:flex;align-items:center;justify-content:center;color:var(--coral)}
 .tcard .h .ti svg{width:16px;height:16px}
 .tcard .h .badge{margin-right:auto;background:rgba(55,201,140,.16);color:var(--green);font-size:10px;font-weight:800;padding:4px 9px;border-radius:16px}
+.toolchip{align-self:flex-end;direction:ltr;font-family:Consolas,monospace;font-size:9.5px;color:#8FC0DE;background:rgba(94,143,176,.12);border:1px solid rgba(94,143,176,.3);padding:2px 9px;border-radius:10px;margin-bottom:-3px;animation:rise .3s ease-out}
 .r{display:flex;justify-content:space-between;align-items:center;padding:8px 2px;font-size:12.5px}
 .r .k{color:var(--muted)}.r .v{font-weight:800}
 .r.big{padding-top:11px;border-top:1px solid var(--line)}
@@ -386,7 +387,12 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
   }
   function successB(t) { var d = document.createElement('div'); d.className = 'success'; d.innerHTML = ICON_OK + t; log.appendChild(d); sc(); }
   function row(k, v, ltr) { return '<div class="r"><span class="k">' + k + '</span><span class="v"' + (ltr ? ' style="direction:ltr;font-size:11px"' : '') + '>' + v + '</span></div>'; }
+  function toolChip(name) {
+    var d = document.createElement('div'); d.className = 'toolchip';
+    d.textContent = '⚙ ' + name; log.appendChild(d);
+  }
   function confirmCard(amount, warn) {
+    toolChip('propose_transfer');
     var c = document.createElement('div'); c.className = 'tcard';
     c.innerHTML = '<div class="h"><span class="ti">' + ICON_TR + '</span>تأكيد التحويل<span class="badge">تحويل فوري</span></div>'
       + row('المستفيد', 'أحمد العتيبي') + row('البنك', 'مصرف الإنماء') + row('الآيبان', 'SA44 0500 0068 2016 1234 9101', true)
@@ -396,6 +402,7 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     log.appendChild(c); sc(); return c;
   }
   function receiptCard() {
+    toolChip('show_receipt');
     var c = document.createElement('div'); c.className = 'tcard';
     c.innerHTML = '<div class="h"><span class="ti">' + ICON_RCPT + '</span>إيصال تحويل<span class="badge">ناجح</span></div>'
       + row('المستفيد', 'أحمد العتيبي — مصرف الإنماء')
@@ -406,6 +413,7 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     log.appendChild(c); sc(); return c;
   }
   function benCard() {
+    toolChip('add_beneficiary');
     var c = document.createElement('div'); c.className = 'tcard';
     c.innerHTML = '<div class="h"><span class="ti">' + ICON_USERPLUS + '</span>مستفيد جديد<span class="badge">تمت الإضافة</span></div>'
       + row('الاسم', 'خالد الدوسري')
@@ -414,6 +422,7 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     log.appendChild(c); sc();
   }
   function cardLockCard() {
+    toolChip('set_card_lock');
     var c = document.createElement('div'); c.className = 'tcard';
     c.innerHTML = '<div class="h"><span class="ti">' + ICON_FREEZE + '</span>إيقاف مؤقت للبطاقة<span class="badge" style="background:rgba(94,143,176,.18);color:#8FC0DE">موقّفة</span></div>'
       + row('البطاقة', 'مدى الرقمية •••• 4821')
@@ -422,6 +431,7 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     log.appendChild(c); sc();
   }
   function zakatCard() {
+    toolChip('calculate_zakat');
     var c = document.createElement('div'); c.className = 'tcard';
     c.innerHTML = '<div class="h"><span class="ti">' + ICON_COINS + '</span>حاسبة الزكاة<span class="badge">2.5%</span></div>'
       + row('رصيدك الحالي', '24,580.00')
@@ -430,6 +440,7 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     log.appendChild(c); sc();
   }
   function loanCard() {
+    toolChip('financing_estimate');
     var c = document.createElement('div'); c.className = 'tcard';
     c.innerHTML = '<div class="h"><span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9v6M18 9v6"/></svg></span>تقدير التمويل الشخصي<span class="badge">مرابحة</span></div>'
       + row('الحد الأقصى المتاح لك', '204,000 ر.س')
@@ -444,6 +455,7 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     return c;
   }
   function ticketCard() {
+    toolChip('create_support_ticket');
     var c = document.createElement('div'); c.className = 'tcard';
     c.innerHTML = '<div class="h"><span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg></span>تذكرة دعم — لموظف مختص<span class="badge">مفتوحة</span></div>'
       + row('رقم التذكرة', 'TKT-8H3KD', true)
