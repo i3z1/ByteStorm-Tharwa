@@ -601,15 +601,32 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     await sleep(3800);
   }
 
-  // 5) why the bank adopts it (value numbers)
+  // 5) why the bank adopts it — a rapid support montage plays on the phone
+  // while the captions make the cost argument (nothing idles on screen)
   async function sceneValue() {
-    page('p-home');
+    page('p-chat'); log.innerHTML = '';
     await caption('للبنك: <span class="hl">رضا أعلى وتكاليف أقل</span>', '~80% من الاستفسارات متكررة — ثَروة يحلّها ذاتياً بدون موظف');
-    await sleep(4200);
+    await sleep(400);
+    userMsg('وش رسوم التحويل المحلي؟');
+    await think(650);
+    botMsg('فوري و<b>مجاني</b> — وحدّك اليومي 60,000 ر.س.');
+    await sleep(900);
+    userMsg('كيف أحدّث هويتي؟');
+    await think(650);
+    botMsg('تلقائياً عبر أبشر خلال <b>24 ساعة</b> — ما تحتاج فرع.');
+    await sleep(1100);
     await caption('المكالمة تكلّف <span class="hl">ريالات… والمحادثة هللات</span>', 'توفير ×10 لكل استفسار + خدمة ذاتية في 3 ثوانٍ = عميل أسعد بتكلفة أقل');
-    await sleep(4200);
+    await sleep(300);
+    userMsg('أبي أعترض على عملية ما أعرفها');
+    await think(650);
+    botMsg('قدّمت الاعتراض من التطبيق — يُعالج خلال <b>10 أيام عمل</b> ويُعاد المبلغ إذا ثبت الاحتيال.');
+    await sleep(1000);
+    successB('3 استفسارات حُلّت في ثوانٍ — بدون موظف واحد');
+    await sleep(1900);
     await caption('يُدمج <span class="hl">داخل تطبيق البنك نفسه</span>', 'وحدة White-label بهوية البنك — تُركّب فوق أنظمته القائمة في أسابيع');
-    await sleep(4200);
+    await sleep(500);
+    page('p-home');
+    await sleep(3700);
   }
 
   // 6) add beneficiary
