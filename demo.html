@@ -304,6 +304,11 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
 (function () {
   "use strict";
   var q = function (s) { return document.querySelector(s); };
+  // presenter speed: ?pitch (or ?fast) plays at ~2x for a 4-minute slot;
+  // press F to toggle live. Everything routes through sleep() so scaling it
+  // scales the whole reel (typing, thinking, scene pauses).
+  var SPEED = /[?&](pitch|fast)/i.test(location.search) ? 0.5 : 1;
+
   // interruptible sleep: arrow keys cancel every pending wait, so the current
   // scene aborts instantly (a {skip:true} throw) and the runner jumps scenes
   var gen = 0, waiters = [];
@@ -315,7 +320,7 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
   function sleep(ms) {
     return new Promise(function (r) {
       var g = gen;
-      var t = setTimeout(function () { unreg(); r(g === gen); }, ms);
+      var t = setTimeout(function () { unreg(); r(g === gen); }, Math.max(30, ms * SPEED));
       function cancel() { clearTimeout(t); r(false); }
       function unreg() { var ix = waiters.indexOf(cancel); if (ix > -1) waiters.splice(ix, 1); }
       waiters.push(cancel);
@@ -737,6 +742,7 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
   // presenter navigation: in RTL, ← = next scene, → = previous.
   // Space / PageDown (clickers) also advance; PageUp goes back.
   document.addEventListener('keydown', function (e) {
+    if (e.key === 'f' || e.key === 'F') { SPEED = SPEED === 1 ? 0.5 : 1; showSpeed(); return; } // toggle presenter speed
     var next = (e.key === 'ArrowLeft' || e.key === 'ArrowDown' || e.key === ' ' || e.key === 'PageDown');
     var prev = (e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'PageUp');
     if (!next && !prev) return;
@@ -746,6 +752,14 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     else idx = Math.max(0, idx - 1);
     skipAll();
   });
+  // brief on-screen speed indicator when toggled
+  function showSpeed() {
+    var el = q('#speedtag');
+    if (!el) { el = document.createElement('div'); el.id = 'speedtag'; el.style.cssText = 'position:fixed;top:16px;left:16px;z-index:99;font-family:sans-serif;font-size:13px;font-weight:800;color:#fff;background:rgba(236,124,90,.9);padding:6px 14px;border-radius:14px;transition:opacity .3s'; document.body.appendChild(el); }
+    el.textContent = SPEED === 1 ? '▶ سرعة عادية' : '⏩ وضع العرض (سريع)';
+    el.style.opacity = '1';
+    clearTimeout(el._t); el._t = setTimeout(function () { el.style.opacity = '0'; }, 1500);
+  }
 
   async function run() {
     // intro fades in first, then everything resets behind it
