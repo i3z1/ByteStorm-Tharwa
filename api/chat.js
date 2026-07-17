@@ -374,9 +374,9 @@ function doRecommendCard(s, actions) {
 }
 
 function doListCards(s, actions) {
-  const { topCat } = spendTop(s);
+  const { total, topCat, topPct } = spendTop(s);
   const list = CARDS.map((c) => Object.assign({ match: c.base, issued: s.cards.some((x) => x.id === c.id) }, c));
-  actions.push({ type: "card_list", cards: list, topCat });
+  actions.push({ type: "card_list", cards: list, topCat, topPct, monthlySpend: total });
   return { ok: true, note: `عُرضت كل بطاقات البنك (${CARDS.length}) مرتبة من الأنسب لصرف العميل للأقل: ${CARDS.map((c) => `${c.name} (${c.base}%)`).join(" ، ")}. اذكر أعلى ثلاث بطاقات باختصار واعرض عليه إصدار أي واحدة بأداة issue_card.` };
 }
 

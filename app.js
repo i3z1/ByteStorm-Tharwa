@@ -808,12 +808,13 @@
   }
   function renderCardOffer(a) {
     var c = a.card;
+    var isTop = !a.fromList; // top recommendation vs a card opened from the list
     var card = document.createElement("div");
     card.className = "tcard";
     card.innerHTML =
-      '<div class="h"><span class="ti">' + ICON_FIN + '</span>أنسب بطاقة لصرفك<span class="badge">' + c.match + '% تطابق</span></div>'
+      '<div class="h"><span class="ti">' + ICON_FIN + '</span>' + (isTop ? "أنسب بطاقة لصرفك" : esc(c.cat)) + '<span class="badge">' + c.match + '% تطابق</span></div>'
       + cardVisual(c, true)
-      + cardRow("سبب الترشيح", '<span class="v" style="font-size:12.5px">أعلى فئة صرفك «' + esc(a.topCat) + '» — ' + a.topPct + '% من ' + fmt0(a.monthlySpend) + ' ر.س شهرياً</span>')
+      + cardRow(isTop ? "سبب الترشيح" : "لمن تناسب", '<span class="v" style="font-size:12.5px">' + (isTop ? 'أعلى فئة صرفك «' + esc(a.topCat) + '» — ' + a.topPct + '% من ' + fmt0(a.monthlySpend) + ' ر.س شهرياً' : esc(c.why)) + '</span>')
       + cardRow("المكافآت", '<span class="v" style="font-size:12px">' + esc(c.domestic) + '</span>')
       + (c.welcome ? cardRow("مكافأة ترحيبية", '<span class="v" style="font-size:12px;color:var(--green)">' + esc(c.welcome) + '</span>') : "")
       + (c.lounges ? cardRow("صالات المطار", '<span class="v" style="font-size:12px">' + esc(c.lounges) + '</span>') : "")
@@ -821,13 +822,16 @@
       + (c.shariah ? cardRow("التوافق", '<span class="v" style="font-size:12px;color:var(--green)">متوافقة مع الشريعة</span>') : "")
       + (c.issued
           ? '<div class="confirm cardbtns"><button class="btn ok" disabled>' + ICON_CHECK + 'بطاقتك صادرة بالفعل</button></div>'
-          : '<div class="confirm cardbtns"><button class="btn ok issue-card">' + ICON_CHECK + 'أصدرها</button><button class="btn no more-cards">اعرض غيرها</button></div>')
+          : '<div class="confirm cardbtns"><button class="btn ok issue-card">' + ICON_CHECK + 'أصدرها</button><button class="btn no more-cards">' + (isTop ? "اعرض غيرها" : "◀ رجوع للبطاقات") + '</button></div>')
       + '<div class="r" style="color:var(--muted);font-size:12.5px">الترشيح مبني على نمط صرفك الفعلي — وليس موافقة ائتمانية نهائية.</div>';
     log.appendChild(card); scrollChat();
     var ib = q(".issue-card", card);
     if (ib) ib.onclick = function () { ib.disabled = true; handle("أصدر لي بطاقة " + c.name); };
     var mb = q(".more-cards", card);
-    if (mb) mb.onclick = function () { mb.disabled = true; handle("ما عجبتني، اعرض لي بقية البطاقات"); };
+    if (mb) mb.onclick = function () {
+      if (isTop) { mb.disabled = true; handle("ما عجبتني، اعرض لي بقية البطاقات"); }
+      else { renderCardList({ cards: a.allCards, topCat: a.topCat, topPct: a.topPct, monthlySpend: a.monthlySpend }); }
+    };
   }
 
   // ---------------- CARD LIST (best → last) ----------------
@@ -837,24 +841,23 @@
   function renderCardList(a) {
     var card = document.createElement("div");
     card.className = "tcard";
-    var rows = (a.cards || []).map(function (c) {
+    var rows = (a.cards || []).map(function (c, i) {
       var mc = c.match >= 80 ? "var(--green)" : (c.match >= 60 ? "var(--gold)" : "var(--muted)");
-      return '<div class="clrow" data-name="' + esc(c.name) + '">'
+      return '<div class="clrow">'
         + '<span class="clm" style="color:' + mc + '">' + c.match + '%</span>'
         + '<div class="clmid"><b class="clname">' + esc(shortCardName(c.name)) + '<span class="clcat">' + esc(c.cat) + '</span></b><span class="clwhy">' + esc(c.why) + '</span></div>'
-        + (c.issued ? '<span class="clissued">✓ صادرة</span>' : '<button class="clissue">إصدار</button>')
+        + (c.issued ? '<span class="clissued">✓ صادرة</span>' : '<button class="clissue" data-ci="' + i + '">عرض</button>')
         + '</div>';
     }).join("");
     card.innerHTML =
       '<div class="h"><span class="ti">' + ICON_FIN + '</span>كل البطاقات — مرتّبة لصرفك<span class="badge">' + (a.cards || []).length + '</span></div>'
       + rows
-      + '<div class="r" style="color:var(--muted);font-size:11.5px;border-top:1px solid var(--line);padding-top:9px">من الأنسب لنمط صرفك للأقل — اضغط «إصدار» لأي بطاقة.</div>';
+      + '<div class="r" style="color:var(--muted);font-size:11.5px;border-top:1px solid var(--line);padding-top:9px">من الأنسب لنمط صرفك للأقل — اضغط «عرض» لتفاصيل أي بطاقة.</div>';
     log.appendChild(card); scrollChat();
     qa(".clissue", card).forEach(function (btn) {
       btn.onclick = function () {
-        var row = btn.parentNode;
-        btn.textContent = "…"; btn.disabled = true;
-        handle("أصدر لي بطاقة " + row.getAttribute("data-name"));
+        var c = a.cards[+btn.getAttribute("data-ci")];
+        renderCardOffer({ card: c, fromList: true, allCards: a.cards, topCat: a.topCat, topPct: a.topPct, monthlySpend: a.monthlySpend });
       };
     });
   }
