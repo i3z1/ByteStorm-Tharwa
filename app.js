@@ -784,6 +784,33 @@
     log.appendChild(card); scrollChat();
   }
 
+  // ---------------- CARD RECOMMENDATION OFFER ----------------
+  function renderCardOffer(a) {
+    var card = document.createElement("div");
+    card.className = "tcard";
+    card.innerHTML =
+      '<div class="h"><span class="ti">' + ICON_FIN + '</span>ترشيح ثَروة لك<span class="badge">' + a.match + '% تطابق</span></div>'
+      + '<div style="position:relative;margin:10px 0;border-radius:14px;padding:14px 16px;height:118px;background:linear-gradient(135deg,#274B66,#122536);overflow:hidden">'
+      +   '<div style="display:flex;justify-content:space-between;align-items:flex-start"><b style="color:#fff;font-size:13px">ثَروة</b><i style="color:#fff;font-weight:900;font-size:12px;font-style:italic">VISA</i></div>'
+      +   '<div style="color:#fff;font-weight:800;font-size:16px;margin-top:8px">فيزا كاش باك</div>'
+      +   '<div style="direction:ltr;text-align:right;color:#fff;font-size:13px;letter-spacing:2px;margin-top:12px">•••• 2088</div>'
+      + '</div>'
+      + cardRow("سبب الترشيح", '<span class="v" style="font-size:12.5px">أعلى فئة صرفك «' + esc(a.topCat) + '» — ' + a.topPct + '% من ' + fmt0(a.monthlySpend) + ' ر.س شهرياً</span>')
+      + '<div class="r big"><span class="k">كاش باك متوقع أول سنة</span><span class="v" style="color:var(--green)">~' + fmt0(a.annualValue) + '<span class="c">ر.س</span></span></div>'
+      + cardRow("المزايا", '<span class="v" style="font-size:12.5px">3% مطاعم وتوصيل أول 3 أشهر · 1% على الباقي</span>')
+      + cardRow("الرسوم", '<span class="v" style="font-size:12.5px">مجانية أول سنة — بعدها 199 ر.س تُعفى عند إنفاق 20,000</span>')
+      + (a.issued
+          ? '<div class="confirm"><button class="btn ok" disabled>' + ICON_CHECK + 'بطاقتك صادرة بالفعل</button></div>'
+          : '<div class="confirm"><button class="btn ok issue-card">' + ICON_CHECK + 'أصدر البطاقة الرقمية</button></div>')
+      + '<div class="r" style="color:var(--muted);font-size:12.5px">الترشيح مبني على نمط صرفك الفعلي — وليس موافقة ائتمانية نهائية.</div>';
+    log.appendChild(card); scrollChat();
+    var ib = q(".issue-card", card);
+    if (ib) ib.onclick = function () {
+      ib.disabled = true;
+      handle("أصدر لي بطاقة فيزا كاش باك");
+    };
+  }
+
   // ---------------- APPLY ACTIONS FROM SERVER ----------------
   function applyActions(actions) {
     if (!actions) return;
@@ -818,6 +845,11 @@
         renderLoanCard(a);
       } else if (a.type === "ticket") {
         renderTicketCard(a);
+      } else if (a.type === "card_offer") {
+        renderCardOffer(a);
+      } else if (a.type === "card_issued") {
+        renderCards();
+        successBubble("تم إصدار بطاقة " + a.name + " الرقمية •••• " + a.last4 + " — تلقاها في بطاقاتك الآن.");
       } else if (a.type === "open" && a.screen) {
         var map = { home: "s-home", spend: "s-spend", invest: "s-invest", chat: "s-chat" };
         var target = map[a.screen];
@@ -886,6 +918,7 @@
     "احسب زكاتي",
     "حط ميزانية 1500 للمطاعم",
     "قيّم وضعي المالي",
+    "وش أفضل بطاقة لي؟",
     "كم يطلع لي تمويل شخصي؟",
     "كم صرفت على المطاعم؟",
     "أضف مستفيد جديد"
