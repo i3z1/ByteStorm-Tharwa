@@ -28,8 +28,8 @@ Read this file completely before changing the project. The user expects changes 
 ## Architecture and important files
 
 - `index.html`: main responsive landing page plus the interactive phone UI. Most CSS is embedded here. Arabic, RTL, Tajawal, dark navy/coral visual system.
-- `app.js`: client state, navigation, chat UI, card rendering, speech recognition/TTS controls, local card-advisor flow, and calls to `/api/chat`.
-- `api/chat.js`: Vercel serverless Gemini assistant with tool/function calls for transfers, budgets, beneficiaries, investing, zakat, card lock/unlock, receipts, and financial health.
+- `app.js`: client state, navigation, chat UI, card rendering (transfer/OTP confirm, receipt+PDF, zakat, health gauge, card lock, loan estimate, support ticket, card offer), speech recognition/TTS controls, and calls to `/api/chat`. All AI routing is server-side — there is no local card-advisor.
+- `api/chat.js`: Vercel serverless Gemini assistant with **14 function-calling tools**: propose/execute transfer, add_beneficiary, set_investment_plan (murabaha savings), set_budget, calculate_zakat, show_receipt, open_screen, financial_health, set_card_lock, financing_estimate, create_support_ticket, recommend_card, issue_card.
 - `api/tts.js`: serverless text-to-speech endpoint.
 - `demo.html`: standalone scripted/cinematic autoplay demo. It does not import `app.js`; matching features must be updated separately here.
 - `qr.html`: QR presentation screen.
@@ -40,19 +40,19 @@ There is no framework or build system. The app is mostly plain HTML/CSS/JavaScri
 
 ## Current product behavior
 
-- The AI chat executes simulated banking tools with confirmation before sensitive actions.
-- Card recommendations are personalized from `state.expenses` and `state.income`.
-- The current customer has monthly expenses totaling about 6,420 SAR; restaurants are the top category at roughly 35%. The recommended product is **Tharwa Visa Cashback**.
-- The recommendation UI shows a match score, spending rationale, proper card preview, estimated first-year cashback, benefits, fees, comparison, and simulated digital issuance.
-- The cashback card uses 1% cashback generally and a 3% restaurants/delivery introductory offer for the first three months. Issuance and first year are free; later fee is 199 SAR and waived at 20,000 SAR annual spend. This is prototype data, not a real bank offer.
-- Asking to issue the card adds a simulated digital Visa card to `state.cards` and the home card carousel.
-- Card freeze/unfreeze actions show the selected card preview inside AI chat. A frozen overlay clearly says all transactions are rejected.
-- The guided demo includes both personalized card recommendation/issuance and lost-card freeze preview scenes.
+- The AI chat executes simulated banking tools with confirmation before sensitive actions. Transfers require a confirm card **plus an OTP moment**; `execute_transfer` refuses server-side without a pending confirmed proposal (prompt-injection resistant).
+- Savings ("ادخار") is a **Shariah-compliant murabaha account at a flat ~4% expected annual return** (`SAVE_RATE`). There are NO risk tiers, no stocks/gold/portfolio — the word "استثمار" was deliberately removed from all user-facing copy.
+- Financing: `financing_estimate` computes a murabaha personal-financing estimate (~6% reducing, `FIN_RATE`) from the customer's real income/expenses, capped by 33% DSR (`FIN_DSR`) AND monthly surplus. Applying formally opens a support ticket (bank-human action).
+- Support tickets (`create_support_ticket`) are STRICTLY for requests only a human banker can fulfill (formal financing application, account open/close, complex complaints). Never for questions the assistant can answer or for card recommendation/issuance.
+- Card recommendations come from the server tool `recommend_card` using `state.expenses`: match score (82 + topPct/3, cap 96), top-category rationale, deterministic year-one cashback. Current demo customer: ~6,420 SAR monthly expenses, restaurants top at ~35% → **Tharwa Visa Cashback** (94% match, ~905 SAR year-one).
+- The cashback card: 1% general, 3% restaurants/delivery intro for 3 months; issuance and first year free; later 199 SAR waived at 20,000 SAR annual spend. `issue_card` (explicit consent only) appends the digital Visa (•••• 2088) to `state.cards` and the home carousel. Prototype data, not a real bank offer.
+- Card freeze/unfreeze shows the selected card preview inside AI chat; a frozen overlay clearly says all transactions are rejected.
+- The guided demo (`demo.html`) has 9 standalone scenes in bank-value-first order (freeze, transfer+OTP+receipt, fraud guard, financing+ticket, bank-value montage, beneficiary, zakat, saving, voice) with **arrow-key presenter navigation** (RTL: ← next, → previous; Space/PageDown/PageUp work for clickers) via an interruptible `sleep()`/generation-counter mechanism.
 
 ## Critical routing and UX rules (do not regress)
 
-1. **Security intents have priority over recommendations.** In `cardAssistant()`, lost/stolen/freeze/unfreeze phrases must return `null` so `/api/chat` and the `set_card_lock` tool handle them. “ضاعت بطاقتي” must never trigger a cashback recommendation.
-2. Generic benefit detection must not match the bare word `بطاق`/`بطاقتي`; it caused the lost-card regression before.
+1. **Security intents have absolute priority.** Lost/stolen/freeze/unfreeze phrases must route to `set_card_lock` only — "ضاعت بطاقتي" must never trigger a card recommendation or any marketing. This is enforced in the system prompt and both `recommend_card`/`set_card_lock` tool descriptions; verified by live tests.
+2. All AI routing is server-side via tools — do not reintroduce a client-side `cardAssistant()` interceptor.
 3. In the main chat, direct children must keep `flex-shrink: 0`. The rule `#s-chat .chat>*{flex-shrink:0}` prevents cards and messages from being compressed/cut in half.
 4. Starter suggestion chips hide after a conversation begins via the `has-conversation` class, and the chat expands above the input bar.
 5. Card previews use a real card aspect ratio and must remain fully visible. The chip must sit below the title, not overlap card text.
