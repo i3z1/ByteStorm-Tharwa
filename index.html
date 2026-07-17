@@ -214,6 +214,22 @@ background:conic-gradient(var(--c1) 0 35%,var(--c2) 35% 57%,var(--c3) 57% 75%,va
 #s-invest .arow .pc{width:42px;text-align:left;font-weight:800;font-size:14px}
 #s-invest .proj{margin-top:8px;display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--green);font-weight:800}
 #s-invest .proj svg{width:18px;height:18px}
+/* goal-outcome card: hero projected figure + progress-to-goal bar */
+#s-invest .goalout{margin-top:16px;background:linear-gradient(150deg,var(--surface2),var(--surface));border:1px solid var(--line);border-radius:20px;padding:18px}
+#s-invest .goalout .gtop{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:13px}
+#s-invest .goalout .gt-l .k{font-size:12.5px;color:var(--muted)}
+#s-invest .goalout .gt-l .v{font-size:28px;font-weight:900;color:var(--green);line-height:1.1;margin-top:3px}
+#s-invest .goalout .gt-l .v .c{font-size:14px;color:var(--muted);font-weight:700}
+#s-invest .goalout .gt-r{text-align:left;font-size:12px;color:var(--muted)}
+#s-invest .goalout .gt-r b{display:block;font-size:15px;font-weight:800;color:var(--text);margin-top:2px}
+#s-invest .goalbar{height:12px;border-radius:8px;background:rgba(255,255,255,.06);overflow:hidden}
+#s-invest .goalbar span{display:block;height:100%;border-radius:8px;background:linear-gradient(90deg,#37C98C,#2f9e6f);transition:width .9s cubic-bezier(.2,.8,.25,1)}
+#s-invest .goalbar.warn span{background:linear-gradient(90deg,#E2A93B,#c88f1e)}
+#s-invest .goalout .glabels{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-top:7px}
+#s-invest .goalout .gnote{margin-top:11px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+#s-invest .goalout .gnote svg{width:16px;height:16px;flex:none}
+#s-invest .goalout.ok .gnote{color:var(--green)}
+#s-invest .goalout.warn .gnote{color:var(--gold)}
 #s-invest .cta{position:absolute;bottom:0;left:0;right:0;padding:16px 22px 26px;background:linear-gradient(180deg,rgba(11,30,44,0),var(--bg) 32%)}
 #s-invest .cta .b{display:flex;align-items:center;justify-content:center;gap:9px;background:var(--coral2);color:#fff;padding:16px;border-radius:16px;font-size:16.5px;font-weight:800;box-shadow:0 12px 26px rgba(236,124,90,.4)}
 #s-invest .cta .b svg{width:19px;height:19px}
@@ -486,8 +502,15 @@ body{overflow:hidden;overscroll-behavior:none;touch-action:manipulation;-webkit-
     <div class="arow"><span class="ci" style="background:var(--green)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7.5" ry="3"/><path d="M4.5 6v5c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3V6"/><path d="M4.5 11v5c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-5"/></svg></span><span class="nm">حساب ادخار مرابحة — متوافق مع الشريعة</span><span class="pc">~4%</span></div>
     <div class="arow"><span class="ci" style="background:#5E8FB0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9v6M18 9v6"/></svg></span><span class="nm">إيداع تلقائي شهرياً — وسحب متاح في أي وقت</span><span class="pc">✓</span></div>
   </div>
-  <div class="proj"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>المتوقع بعد <span id="inv-months">24</span> شهراً (بعائد مركّب): <span id="inv-proj">~12,471 ر.س</span></div>
-  <div class="tracknote warn" id="inv-track"></div>
+  <div class="goalout" id="inv-goalout">
+    <div class="gtop">
+      <div class="gt-l"><span class="k">المتوقع تجميعه بعائد مركّب</span><span class="v"><span id="inv-proj">12,471</span> <span class="c">ر.س</span></span></div>
+      <div class="gt-r">بعد <span id="inv-months">24</span> شهراً<b id="inv-goalamt">من 20,000 ر.س</b></div>
+    </div>
+    <div class="goalbar" id="inv-goalbar"><span style="width:0"></span></div>
+    <div class="glabels"><span>0</span><span id="inv-goaltarget">الهدف 20,000</span></div>
+    <div class="gnote" id="inv-track"></div>
+  </div>
 </div>
 <div class="cta"><div class="b">ابدأ الخطة الآن<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></div></div>
 </div></div></div></div><div class='hint'>جرّب مباشرة من الجوال أعلاه — افتح شاشة «المساعد» واكتب أو اضغط المايك وقل:

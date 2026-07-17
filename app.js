@@ -141,14 +141,23 @@
     var g = q("#inv-growth"); if (g) g.textContent = "+" + SAVE_RATE + "%";
     var proj = fvMonthly(monthly, SAVE_RATE, goal.months);
     var mo = q("#inv-months"); if (mo) mo.textContent = goal.months;
-    var pj = q("#inv-proj"); if (pj) pj.textContent = "~" + fmt0(proj) + " ر.س";
+    var pj = q("#inv-proj"); if (pj) pj.textContent = fmt0(proj);
+    var ga = q("#inv-goalamt"); if (ga) ga.textContent = "من " + fmt0(goal.amount) + " ر.س";
+    var gt = q("#inv-goaltarget"); if (gt) gt.textContent = "الهدف " + fmt0(goal.amount);
+    var ok = proj >= goal.amount;
+    var pct = Math.max(4, Math.min(100, Math.round(proj / goal.amount * 100)));
+    var gout = q("#inv-goalout"); if (gout) gout.className = "goalout " + (ok ? "ok" : "warn");
+    var gbar = q("#inv-goalbar");
+    if (gbar) {
+      gbar.className = "goalbar " + (ok ? "" : "warn");
+      var fill = gbar.firstElementChild;
+      requestAnimationFrame(function () { requestAnimationFrame(function () { if (fill) fill.style.width = pct + "%"; }); });
+    }
     var tr = q("#inv-track");
     if (tr) {
-      var ok = proj >= goal.amount;
-      tr.className = "tracknote " + (ok ? "ok" : "warn");
-      tr.textContent = ok
-        ? "الخطة تحقق هدفك — متوقع " + fmt0(proj) + " من " + fmt0(goal.amount) + " ر.س"
-        : "أقل من هدفك بـ " + fmt0(goal.amount - proj) + " ر.س — زد القسط أو المدة";
+      tr.innerHTML = (ok ? ICON_OK : ICON_ERR)
+        + (ok ? "الخطة تحقق هدفك — متوقع " + fmt0(proj) + " (" + pct + "%)"
+              : "أقل من هدفك بـ " + fmt0(goal.amount - proj) + " ر.س — زد القسط أو المدة");
     }
     var cta = q("#s-invest .cta .b");
     if (cta && cta.dataset.on) cta.innerHTML = ICON_CHECK + "الخطة مفعّلة — " + fmt0(monthly) + " ر.س شهرياً";
