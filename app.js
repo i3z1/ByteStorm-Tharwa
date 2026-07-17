@@ -742,6 +742,48 @@
     };
   }
 
+  // ---------------- FINANCING ESTIMATE CARD ----------------
+  var ICON_FIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9v6M18 9v6"/></svg>';
+  function renderLoanCard(a) {
+    var card = document.createElement("div");
+    card.className = "tcard";
+    var dsrPct = Math.min(100, Math.round(a.dsr / 33 * 100));
+    var dsrColor = a.fits ? "var(--green)" : "#F0796B";
+    card.innerHTML =
+      '<div class="h"><span class="ti">' + ICON_FIN + '</span>تقدير التمويل الشخصي<span class="badge">مرابحة</span></div>'
+      + cardRow(a.requested ? "المبلغ المطلوب" : "الحد الأقصى المتاح لك", '<span class="v">' + fmt0(a.amount) + ' ر.س</span>')
+      + cardRow("مدة السداد", '<span class="v">' + a.months + ' شهراً</span>')
+      + cardRow("هامش المرابحة السنوي", '<span class="v">~' + a.rate + '% (متناقص)</span>')
+      + '<div class="r big"><span class="k">القسط الشهري</span><span class="v" style="color:' + dsrColor + '">' + fmt0(a.monthly) + '<span class="c">ر.س</span></span></div>'
+      + '<div class="r" style="display:block"><div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-bottom:5px"><span>نسبة الاستقطاع من دخلك</span><span style="color:' + dsrColor + ';font-weight:700">' + a.dsr + '% من حد 33%</span></div>'
+      + '<div style="height:7px;border-radius:5px;background:var(--surface2);overflow:hidden"><span style="display:block;height:100%;width:' + dsrPct + '%;background:' + dsrColor + '"></span></div></div>'
+      + (a.fits
+          ? '<div class="confirm"><button class="btn ok apply-fin">' + ICON_CHECK + 'قدّم طلب التمويل</button></div>'
+          : '<div class="warnrow">' + ICON_SHIELD + '<span>القسط يتجاوز الحد الآمن — جرّب مبلغاً أقل (حتى ~' + fmt0(a.maxAmount) + ' ر.س) أو مدة أطول.</span></div>')
+      + '<div class="r" style="color:var(--muted);font-size:12.5px">تقدير مبدئي من دخلك ومصروفاتك الفعلية — ليس موافقة ائتمانية نهائية.</div>';
+    log.appendChild(card); scrollChat();
+    var ab = q(".apply-fin", card);
+    if (ab) ab.onclick = function () {
+      ab.disabled = true;
+      handle("أبي أقدم طلب التمويل رسمياً");
+    };
+  }
+
+  // ---------------- SUPPORT TICKET CARD ----------------
+  var ICON_TICKET = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>';
+  function renderTicketCard(a) {
+    var card = document.createElement("div");
+    card.className = "tcard";
+    card.innerHTML =
+      '<div class="h"><span class="ti">' + ICON_TICKET + '</span>تذكرة دعم — لموظف مختص<span class="badge">مفتوحة</span></div>'
+      + cardRow("رقم التذكرة", '<span class="v" style="direction:ltr">' + esc(a.ref) + '</span>')
+      + cardRow("التصنيف", '<span class="v">' + esc(a.category) + '</span>')
+      + cardRow("طلبك", '<span class="v" style="font-size:13px">' + esc(a.summary) + '</span>')
+      + cardRow("التواصل المتوقع", '<span class="v" style="color:var(--green)">' + esc(a.eta) + '</span>')
+      + '<div class="r" style="color:var(--muted);font-size:12.5px">احتفظ برقم التذكرة — موظف مختص بيتواصل معك، وتقدر تسألني عنها بأي وقت.</div>';
+    log.appendChild(card); scrollChat();
+  }
+
   // ---------------- APPLY ACTIONS FROM SERVER ----------------
   function applyActions(actions) {
     if (!actions) return;
@@ -772,6 +814,10 @@
         renderCards();
       } else if (a.type === "health") {
         renderHealthCard(a);
+      } else if (a.type === "loan") {
+        renderLoanCard(a);
+      } else if (a.type === "ticket") {
+        renderTicketCard(a);
       } else if (a.type === "open" && a.screen) {
         var map = { home: "s-home", spend: "s-spend", invest: "s-invest", chat: "s-chat" };
         var target = map[a.screen];
@@ -840,6 +886,7 @@
     "احسب زكاتي",
     "حط ميزانية 1500 للمطاعم",
     "قيّم وضعي المالي",
+    "كم يطلع لي تمويل شخصي؟",
     "كم صرفت على المطاعم؟",
     "أضف مستفيد جديد"
   ];

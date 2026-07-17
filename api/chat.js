@@ -55,7 +55,20 @@ function validIban(v) { return /^SA\d{20,24}$/.test(normIban(v)); }
 function fmtIban(v) { return normIban(v).replace(/(.{4})/g, "$1 ").trim(); }
 
 const SAVE_RATE = 4.0; // حساب ادخار مرابحة — عائد سنوي متوقع (نموذج تجريبي)
+const FIN_RATE = 6.0;  // تمويل شخصي مرابحة — معدل سنوي متناقص تقريبي (نموذج تجريبي)
+const FIN_DSR = 0.33;  // الحد الأقصى للاستقطاع من الدخل الشهري (مسؤولية الإقراض)
 const CATS = ["مطاعم", "تسوّق", "فواتير", "تحويلات", "أخرى"];
+
+// monthly installment for a financing amount (reducing-rate murabaha approximation)
+function finInstallment(amount, months) {
+  const i = FIN_RATE / 100 / 12;
+  return Math.ceil(amount * i / (1 - Math.pow(1 + i, -months)));
+}
+// max financing amount a monthly installment can serve
+function finMaxAmount(installment, months) {
+  const i = FIN_RATE / 100 / 12;
+  return Math.floor(installment * (1 - Math.pow(1 + i, -months)) / i / 1000) * 1000;
+}
 
 // future value of a monthly contribution at annualPct compound growth
 function fvMonthly(monthly, annualPct, months) {
@@ -99,13 +112,16 @@ const SYSTEM = (s) => {
 8) open_screen(screen): لفتح شاشة home أو spend أو خطة الادخار (invest) عند الطلب.
 9) financial_health(): يحسب درجة صحة العميل المالية من 100 ويعرض بطاقة بصرية بعداد وثلاثة عوامل. استدعها فوراً عند أي طلب تقييم للوضع المالي: «قيّم وضعي المالي»، «كيف وضعي المالي»، «كم درجتي المالية». بعد النجاح علّق باختصار وقدّم نصيحة عملية واحدة على أضعف عامل.
 10) set_card_lock(card, lock): إيقاف بطاقة مؤقتاً أو إعادة تفعيلها. استدعها فوراً عند: «جمّد بطاقتي»، «أوقف بطاقة مدى»، «ضاعت بطاقتي»، «انسرقت بطاقتي»، «فك تجميد بطاقتي»، «فعّل بطاقتي». مرّر اسم البطاقة أو نوعها أو آخر 4 أرقام. إذا قال «بطاقتي» فقط وعنده أكثر من بطاقة نشطة اسأله أيّها يقصد (اذكر أسماءها). عند بطاقة مفقودة/مسروقة: جمّدها فوراً بدون أسئلة إضافية، وبعد النجاح طمّن العميل أن أي عملية عليها مرفوضة الآن، واعرض عليه طلب بطاقة بديلة (تصل خلال 3-5 أيام عمل) وأنه يقدر يفك التجميد بنفس الطريقة لو لقاها.
+11) financing_estimate(amount, months): عند أي سؤال عن قرض أو تمويل — «أبي قرض»، «كم يطلع لي تمويل؟»، «أبي تمويل 50 ألف» — استدعها فوراً. تحسب أهلية العميل من دخله الفعلي (حد استقطاع 33% من الدخل وضمن فائضه الشهري) وتعرض بطاقة تقدير تمويل شخصي مرابحة: الحد الأقصى أو قسط المبلغ المطلوب. مرّر amount إذا حدد مبلغاً، و months إذا حدد مدة (الافتراضي 60 شهراً). وضّح دائماً أنه تقدير مبدئي وليس موافقة ائتمانية، وأن التقديم الرسمي يتم عبر تذكرة لموظف التمويل إذا رغب.
+12) create_support_ticket(category, summary): تفتح تذكرة دعم لموظف البنك وتعرض بطاقة برقم مرجعي. استخدمها حصراً للطلبات التي لا تستطيع أنت ولا أدواتك إنجازها ويحتاجها موظف بشري: تقديم طلب التمويل رسمياً (بعد عرض التقدير وموافقة العميل الصريحة)، فتح أو إغلاق حساب، شكوى معقدة، طلب مستندات رسمية. لا تفتحها أبداً لسؤال تقدر تجيب عنه من معلوماتك أو بأدواتك الأخرى — جاوب مباشرة بدلها.
 
 أنت أيضاً خط الدعم الأول للعميل — جاوب استفسارات الخدمة مباشرة من هذه المعلومات بدل تحويله لمركز الاتصال:
 - التحويل المحلي (سريع): فوري ومجاني. الحد اليومي للتحويلات: 60,000 ر.س ويمكن تعديله من إعدادات الأمان.
 - تحديث الهوية/الإقامة: يتم تلقائياً عبر أبشر خلال 24 ساعة من التجديد — ما يحتاج زيارة فرع.
 - الاعتراض على عملية غير معروفة: يقدَّم من التطبيق وتُعالَج خلال 10 أيام عمل، والمبلغ يُعاد إذا ثبت الاحتيال.
 - بطاقة مفقودة أو اشتباه احتيال على البطاقة: الإجراء الفوري هو التجميد المؤقت بأداة set_card_lock.
-- إذا خرج الطلب عن معلوماتك أو احتاج تدخلاً بشرياً (قروض، فتح حسابات، شكاوى معقدة): اعتذر بلطف واعرض تحويله لموظف خدمة العملاء.
+- أسئلة القروض والتمويل: استخدم أداة financing_estimate لعرض تقدير من أرقام العميل الفعلية — لا تعتذر ولا تحوّله لموظف قبل عرض التقدير.
+- إذا خرج الطلب عن معلوماتك واحتاج تدخلاً بشرياً فعلاً (فتح حسابات، شكاوى معقدة، تقديم رسمي): افتح له تذكرة بأداة create_support_ticket بعد أخذ ملخص واضح لطلبه — لا تكتفِ باعتذار نصي.
 
 قواعد: أجب عن أسئلة الرصيد والمصروفات والدخل والمستفيدين مباشرة من البيانات أعلاه. تقييم الوضع المالي يتم حصراً عبر أداة financial_health (لا تحلّل نصياً بدونها). إذا اقترحت خطة ادخار تأكد أن القسط ضمن الفائض الشهري وإلا نبّه العميل بلطف. التزم بالنطاق البنكي فقط، وإذا سُئلت خارجه اعتذر بلطف ووجّه العميل لما تقدر تساعده فيه.`;
 };
@@ -212,9 +228,72 @@ const TOOLS = [{
         },
         required: ["card", "lock"]
       }
+    },
+    {
+      name: "financing_estimate",
+      description: "يحسب تقدير تمويل شخصي (مرابحة) من دخل العميل الفعلي ضمن حد استقطاع 33% من الدخل، ويعرض بطاقة بالتفاصيل. استدعه فوراً عند أي سؤال عن قرض أو تمويل. تقدير مبدئي وليس موافقة ائتمانية.",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          amount: { type: "NUMBER", description: "المبلغ المطلوب بالريال (اتركه لعرض الحد الأقصى المتاح)" },
+          months: { type: "NUMBER", description: "مدة السداد بالأشهر، 12 إلى 60 (الافتراضي 60)" }
+        }
+      }
+    },
+    {
+      name: "create_support_ticket",
+      description: "يفتح تذكرة دعم لموظف البنك ويعرض بطاقة برقم مرجعي وزمن تواصل متوقع. حصراً للطلبات التي تحتاج موظفاً بشرياً: تقديم طلب تمويل بعد موافقة العميل، فتح/إغلاق حساب، شكوى معقدة. لا تستدعه لأي سؤال يمكن الإجابة عنه مباشرة.",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          category: { type: "STRING", enum: ["تمويل", "حسابات", "شكوى", "أخرى"], description: "تصنيف الطلب" },
+          summary: { type: "STRING", description: "ملخص قصير وواضح لطلب العميل بكلماته" }
+        },
+        required: ["category", "summary"]
+      }
     }
   ]
 }];
+
+function doFinance(args, s, actions) {
+  const months = Number(args.months) > 0 ? Math.min(60, Math.max(12, Math.round(Number(args.months)))) : 60;
+  const totalExp = Object.values(s.expenses).reduce((a, b) => a + b, 0);
+  const surplus = Math.max(0, Math.round(s.income - totalExp));
+  // installment ceiling: responsible-lending DSR cap AND the customer's actual monthly surplus
+  const maxMonthly = Math.min(Math.floor(s.income * FIN_DSR), surplus);
+  if (maxMonthly < 300) {
+    return { ok: false, note: `فائض العميل الشهري الحالي (~${surplus} ر.س) لا يسمح بقسط تمويل مريح — انصحه بضبط ميزانياته أولاً واعرض عليه أداة financial_health.` };
+  }
+  const maxAmount = finMaxAmount(maxMonthly, months);
+  const requested = Number(args.amount) > 0 ? Math.min(2000000, Math.round(Number(args.amount))) : 0;
+  let amount, monthly, fits;
+  if (requested > 0) {
+    amount = requested;
+    monthly = finInstallment(requested, months);
+    fits = monthly <= maxMonthly;
+  } else {
+    amount = maxAmount;
+    monthly = finInstallment(maxAmount, months);
+    fits = true;
+  }
+  const dsr = Math.round(monthly / s.income * 100);
+  actions.push({ type: "loan", amount, monthly, months, rate: FIN_RATE, maxAmount, maxMonthly, dsr, fits, requested: requested > 0 });
+  const fitNote = fits
+    ? `القسط ${monthly} ر.س (${dsr}% من الدخل) ضمن الحد الآمن.`
+    : `القسط المطلوب ${monthly} ر.س يتجاوز الحد الآمن (${maxMonthly} ر.س) — اقترح مبلغاً أقل (بحد أقصى ~${maxAmount} ر.س) أو مدة أطول.`;
+  return { ok: true, note: `تقدير التمويل الشخصي (مرابحة ~${FIN_RATE}% متناقص): ${requested > 0 ? `المبلغ المطلوب ${amount} ر.س` : `الحد الأقصى المتاح ~${amount} ر.س`} على ${months} شهراً. ${fitNote} ظهرت بطاقة التقدير للعميل. وضّح أنه تقدير مبدئي وليس موافقة ائتمانية، واعرض عليه فتح تذكرة لموظف التمويل لإكمال التقديم الرسمي إذا رغب.` };
+}
+
+function doTicket(args, s, actions) {
+  const cats = ["تمويل", "حسابات", "شكوى", "أخرى"];
+  const category = cats.indexOf(String(args.category)) > -1 ? String(args.category) : "أخرى";
+  const summary = String(args.summary || "").trim().slice(0, 140);
+  if (!summary) return { ok: false, note: "ناقص: ملخص الطلب — لخّص طلب العميل بجملة واضحة ثم افتح التذكرة." };
+  const ref = "TKT-" + Date.now().toString(36).toUpperCase().slice(-5);
+  const eta = "خلال 4 ساعات عمل";
+  actions.push({ type: "ticket", ref, category, summary, eta, ts: Date.now() });
+  return { ok: true, note: `تم فتح التذكرة ${ref} (${category}) وظهرت بطاقتها للعميل. طمّنه أن موظفاً مختصاً سيتواصل معه ${eta}، وأن رقم التذكرة مرجعه لأي متابعة.` };
+}
 
 function doPropose(args, s, actions) {
   const amount = Number(args.amount);
@@ -580,6 +659,8 @@ export default async function handler(req, res) {
     if (last.type === "card_lock") return last.locked
       ? `تم إيقاف بطاقة ${last.name} •••• ${last.last4} مؤقتاً — كل العمليات عليها مرفوضة الآن، وتقدر تفك التجميد بأي وقت.`
       : `تمت إعادة تفعيل بطاقة ${last.name} •••• ${last.last4} — تشتغل الآن بشكل طبيعي.`;
+    if (last.type === "loan") return `جهّزت لك تقدير التمويل: ${last.amount} ر.س بقسط ${last.monthly} ر.س على ${last.months} شهراً — تقدير مبدئي وليس موافقة نهائية، وتفاصيله في البطاقة.`;
+    if (last.type === "ticket") return `فتحت لك تذكرة دعم برقم ${last.ref} — موظف مختص بيتواصل معك ${last.eta}.`;
     if (last.type === "transfer" && last.ok) return `تم تنفيذ التحويل بنجاح. رصيدك الحالي ${s.balance} ر.س.`;
     if (last.type === "transfer") return "تعذّر تنفيذ التحويل: الرصيد غير كافٍ.";
     if (last.type === "open") return "فتحت لك الشاشة.";
@@ -624,6 +705,8 @@ export default async function handler(req, res) {
         else if (name === "open_screen") out = doOpen(fargs, actions);
         else if (name === "set_card_lock") out = doCardLock(fargs, s, actions);
         else if (name === "financial_health") out = doHealth(s, actions);
+        else if (name === "financing_estimate") out = doFinance(fargs, s, actions);
+        else if (name === "create_support_ticket") out = doTicket(fargs, s, actions);
         else out = { ok: false, note: "أداة غير معروفة." };
         respParts.push({ functionResponse: { name, response: out } });
       }

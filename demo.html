@@ -275,7 +275,7 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     <div class='team'>فريق ByteStorm — هاكاثون امد 2026 · أكاديمية طويق</div>
   </div>
 
-  <div class='dots' id='dots'><i class='on'></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div class='dots' id='dots'><i class='on'></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
 </div>
 
 <script>
@@ -410,6 +410,30 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
       + row('رصيدك الحالي', '24,580.00')
       + '<div class="r big"><span class="k">زكاتك التقديرية</span><span class="v">614.50<span class="c">ر.س</span></span></div>'
       + '<div class="r" style="color:var(--muted);font-size:10.5px">تقدير توعوي — يفترض حولان الحول وبلوغ النصاب</div>';
+    log.appendChild(c); sc();
+  }
+  function loanCard() {
+    var c = document.createElement('div'); c.className = 'tcard';
+    c.innerHTML = '<div class="h"><span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9v6M18 9v6"/></svg></span>تقدير التمويل الشخصي<span class="badge">مرابحة</span></div>'
+      + row('الحد الأقصى المتاح لك', '204,000 ر.س')
+      + row('مدة السداد', '60 شهراً')
+      + row('هامش المرابحة السنوي', '~6% (متناقص)')
+      + '<div class="r big"><span class="k">القسط الشهري</span><span class="v" style="color:var(--green)">3,944<span class="c">ر.س</span></span></div>'
+      + '<div class="r" style="display:block"><div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);margin-bottom:4px"><span>نسبة الاستقطاع من دخلك</span><span style="color:var(--green);font-weight:700">33% من حد 33%</span></div>'
+      + '<div style="height:6px;border-radius:4px;background:var(--surface2);overflow:hidden"><span style="display:block;height:100%;width:99%;background:var(--green)"></span></div></div>'
+      + '<div class="confirm"><button class="btn ok">قدّم طلب التمويل</button></div>'
+      + '<div class="r" style="color:var(--muted);font-size:10.5px">تقدير مبدئي من دخلك ومصروفاتك الفعلية — ليس موافقة ائتمانية نهائية</div>';
+    log.appendChild(c); sc();
+    return c;
+  }
+  function ticketCard() {
+    var c = document.createElement('div'); c.className = 'tcard';
+    c.innerHTML = '<div class="h"><span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg></span>تذكرة دعم — لموظف مختص<span class="badge">مفتوحة</span></div>'
+      + row('رقم التذكرة', 'TKT-8H3KD', true)
+      + row('التصنيف', 'تمويل')
+      + row('طلبك', 'تقديم طلب تمويل شخصي 204,000 ر.س')
+      + row('التواصل المتوقع', 'خلال 4 ساعات عمل')
+      + '<div class="r" style="color:var(--muted);font-size:10.5px">الذكاء يعرف حدوده — التقديم الرسمي قرار بنكي بشري، فيسلّمه بتذكرة موثّقة</div>';
     log.appendChild(c); sc();
   }
   // OTP moment paced like a real bank: sending… → SMS pops in → autofill hint
@@ -590,8 +614,28 @@ body{font-family:'Tajawal',sans-serif;background:#050e16;color:var(--text);overf
     q('#tracknote').classList.add('show');
     await sleep(3600);
 
-    // ---- scene 7: voice ----
+    // ---- scene 7: personal financing + smart handoff ----
     dot(7);
+    await caption('حتى التمويل… <span class="hl">من أرقامك</span>', 'تقدير فوري من دخلك — والتقديم الرسمي بتذكرة لموظف');
+    await sleep(600);
+    page('p-chat'); log.innerHTML = '';
+    await typeIn('كم يطلع لي تمويل شخصي؟');
+    await pressSend(); userMsg('كم يطلع لي تمويل شخصي؟');
+    await think(1400);
+    botMsg('حسبتها من دخلك ومصروفاتك الفعلية: تقدر تحصل على تمويل حتى <b>204,000 ر.س</b> بقسط <b>3,944 ر.س</b> شهرياً — وهذا تقدير مبدئي وليس موافقة نهائية.');
+    await sleep(1200);
+    var lc = loanCard();
+    await sleep(2600);
+    await tap(lc.querySelector('.btn.ok'));
+    lc.querySelector('.confirm').outerHTML = '<div class="r"><span class="k">الحالة</span><span class="v" style="color:var(--green)">تم إرسال الطلب</span></div>';
+    await think(1300);
+    ticketCard();
+    await sleep(900);
+    botMsg('الذكاء يعرف حدوده: التقديم الرسمي يحتاج موظفاً — ففتحت لك <b>تذكرة موثّقة</b> وبيتواصلون معك خلال 4 ساعات عمل.');
+    await sleep(3800);
+
+    // ---- scene 8: voice ----
+    dot(8);
     await caption('بصوتك… <span class="hl">وبلهجتك</span>', 'شمول مالي حقيقي — لكبار السن وضعاف البصر');
     await sleep(600); page('p-chat'); log.innerHTML = '';
     q('#mic').classList.add('rec'); q('#wave').classList.add('on');
