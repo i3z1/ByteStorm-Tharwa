@@ -831,27 +831,29 @@
   }
 
   // ---------------- CARD LIST (best → last) ----------------
+  function shortCardName(name) {
+    return String(name).replace(/الائتمانية\s*/g, "").replace(/^بطاقة\s*/, "");
+  }
   function renderCardList(a) {
     var card = document.createElement("div");
     card.className = "tcard";
-    var rows = (a.cards || []).map(function (c, i) {
-      var barColor = c.match >= 80 ? "var(--green)" : (c.match >= 60 ? "var(--gold)" : "var(--muted)");
-      return '<div class="cardrow-item" data-name="' + esc(c.name) + '" data-issued="' + (c.issued ? "1" : "0") + '" style="display:flex;gap:10px;align-items:center;padding:9px 2px;border-top:1px solid var(--line);cursor:pointer">'
-        + '<span style="font-size:13px;font-weight:800;color:' + barColor + ';min-width:34px">' + c.match + '%</span>'
-        + '<span style="flex:1"><b style="font-size:13px">' + esc(c.name) + '</b><br><small style="color:var(--muted);font-size:11px">' + esc(c.cat) + ' · ' + esc(c.why) + '</small></span>'
-        + (c.issued ? '<span style="font-size:11px;color:var(--green);white-space:nowrap">✓ صادرة</span>' : '<span class="btn ok mini-issue" style="padding:5px 12px;font-size:11.5px;white-space:nowrap">إصدار</span>')
+    var rows = (a.cards || []).map(function (c) {
+      var mc = c.match >= 80 ? "var(--green)" : (c.match >= 60 ? "var(--gold)" : "var(--muted)");
+      return '<div class="clrow" data-name="' + esc(c.name) + '">'
+        + '<span class="clm" style="color:' + mc + '">' + c.match + '%</span>'
+        + '<div class="clmid"><b class="clname">' + esc(shortCardName(c.name)) + '<span class="clcat">' + esc(c.cat) + '</span></b><span class="clwhy">' + esc(c.why) + '</span></div>'
+        + (c.issued ? '<span class="clissued">✓ صادرة</span>' : '<button class="clissue">إصدار</button>')
         + '</div>';
     }).join("");
     card.innerHTML =
-      '<div class="h"><span class="ti">' + ICON_FIN + '</span>كل البطاقات — مرتّبة لصرفك<span class="badge">' + (a.cards || []).length + ' بطاقات</span></div>'
+      '<div class="h"><span class="ti">' + ICON_FIN + '</span>كل البطاقات — مرتّبة لصرفك<span class="badge">' + (a.cards || []).length + '</span></div>'
       + rows
-      + '<div class="r" style="color:var(--muted);font-size:12px;border-top:1px solid var(--line)">مرتّبة من الأنسب لنمط صرفك للأقل — اضغط «إصدار» لأي بطاقة تعجبك.</div>';
+      + '<div class="r" style="color:var(--muted);font-size:11.5px;border-top:1px solid var(--line);padding-top:9px">من الأنسب لنمط صرفك للأقل — اضغط «إصدار» لأي بطاقة.</div>';
     log.appendChild(card); scrollChat();
-    qa(".mini-issue", card).forEach(function (btn) {
-      btn.onclick = function (e) {
-        e.stopPropagation();
-        var row = btn.closest(".cardrow-item");
-        btn.textContent = "…";
+    qa(".clissue", card).forEach(function (btn) {
+      btn.onclick = function () {
+        var row = btn.parentNode;
+        btn.textContent = "…"; btn.disabled = true;
         handle("أصدر لي بطاقة " + row.getAttribute("data-name"));
       };
     });
